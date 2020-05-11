@@ -1,0 +1,285 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<!-- saved from url=(0071)http://www.cs.toronto.edu/~bianca/cscb09w17/posted_assignments/a2.shtml -->
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	
+      <meta name="ROBOTS" content="NOARCHIVE">
+    <link rel="stylesheet" href="./CSCB09 A2_ Structs and Files_files/styles.css" type="text/css" media="screen">
+    <link rel="stylesheet" href="./CSCB09 A2_ Structs and Files_files/print.css" type="text/css" media="print">
+  <!-- $Id: pagestart.html,v 1.1 2006/09/04 02:08:47 reid Exp $ -->
+    
+
+    <title>
+      CSCB09 A2: Structs and Files
+    </title>
+  </head>
+
+  <body>
+
+<div class="title">
+    <h1>
+      Assignment 2: Structs and Files
+    </h1>
+    </div>
+
+<div class="navigation">
+  <p><br><br><br>
+
+    <span class="links">
+    <a href="http://www.cs.toronto.edu/~bianca/cscb09w17/index.shtml">Home page</a>
+    <a href="http://www.cs.toronto.edu/~bianca/cscb09w17/courseinfo.shtml">Course Info Sheet</a>  
+    <a href="https://piazza.com/class/ixji38wvlyd2pf">Piazza (DB)</a>
+    <a href="https://cms-pcrs.utsc.utoronto.ca/cscb09/content/quests">PCRS</a>
+    <a href="http://www.cs.toronto.edu/~bianca/cscb09w17/lectures.shtml">Lecture Notes</a>  
+    <a href="http://www.cs.toronto.edu/~bianca/cscb09w17/labs.shtml">Labs</a>
+    <a href="http://www.cs.toronto.edu/~bianca/cscb09w17/feedback.shtml">Anonymous Feedback</a>
+    <a href="http://www.cs.toronto.edu/~bianca/cscb09w17/assignments.shtml">Assignments</a>
+    <a href="https://markus.utsc.utoronto.ca/cscb09w17">Markus</a>
+    </span>
+    <br>
+
+    <!--
+    <span class="links">
+    <b> Course Work </b>
+    </span>
+    <br/>
+    -->
+
+    <!--
+    <span class="links">
+     <a href="http://www.cs.toronto.edu/~bianca/cscb09w17/examples.shtml">Examples</a>  
+     <a href="http://www.cs.toronto.edu/~bianca/cscb09w17/marks.shtml">Grades</a>
+     <a href="http://www.cs.toronto.edu/~bianca/cscb09w17/tests.shtml">Tests</a>
+     <a href="http://www.cs.toronto.edu/~bianca/cscb09w17/forms.shtml">Forms</a>
+    </span>
+    -->
+
+  </p>
+
+</div>
+
+
+<div class="content">
+
+  <h3>Due Date: Monday, February 27 @ 6:00 p.m.</h3>
+
+  <h2>Introduction</h2>
+
+  <p>
+    This term, we're building the components of a simple file synchronization system. In the last assignment, you wrote code for computing the hash of input from standard input, so that we can identify when files have changed. In this assignment, you'll write the code to perform a traversal over a file tree.
+  </p>
+
+  <h2>Background: Files and Directories</h2>
+
+  <p>
+    Persistent data on computers is stored in files, and to make it easier to find what we need, we organize files by placing them into directories. Directories can contain other directories, so the directory and file structure on a computer can be modelled by a tree. (We don't need a full graph -- i.e., a tree is sufficient -- since a directory can only have one "parent" -- one directory that contains it.) For this assignment, you'll write code to traverse such a "file tree" and to collect data about the files and directories that are encountered.
+  </p>
+
+  <p>
+    Let's use the command line to explore a few directories. I'll use <tt>ls</tt> to list the files in the solution directory for assignment 2:
+  </p>
+
+  <pre>bschroeder$ ls -lai
+total 48
+14907546 drwxr-xr-x@  9 bschroeder  staff   306  9 Feb 11:52 .
+14454610 drwxr-xr-x  10 bschroeder  staff   340  9 Feb 11:44 ..
+14907694 -rw-r--r--@  1 bschroeder  staff   224  9 Feb 11:42 Makefile
+14907548 -rw-r--r--@  2 bschroeder  staff  3130  5 Feb 22:18 ftree.c
+14907549 -rw-r--r--@  1 bschroeder  staff  1000  3 Feb 16:15 ftree.h
+14907550 -rw-r--r--@  1 bschroeder  staff   114  3 Feb 16:15 hash.h
+14907552 -rw-r--r--@  1 bschroeder  staff   656  3 Feb 11:24 hash_functions.c
+14907556 -rw-r--r--@  1 bschroeder  staff   261  3 Feb 16:15 print_ftree.c
+14907557 drwxr-xr-x@  5 bschroeder  staff   170  9 Feb 11:40 temp
+</pre>
+
+
+  <p>
+    <tt>ls</tt> shows us that the current directory contains nine entries.  Each file has a lot of information associated with it. From left to right, <tt>ls</tt> shows us the inode number (the OS's unique identifier for a file), modes and permissions (what type of file it is and who can access it), the number of links to the file (the number of entries in directories which reference that file), who owns it (bschroeder -- me!), what group the file is in, the size of the file, the modification date, and the filename. The OS actually stores a few more pieces of data -- like the last file access time -- but the options I specified for <tt>ls</tt> didn't request those pieces of information.
+  </p>
+
+  <p>
+    Much of this information won't be too important to you for this assignment, but you <i>do</i> need to know if a file is a directory, a link, or a normal file. In this case, three of the entries are directories (they have a "d" at the front of the permissions, which is the second group of characters from the left), and six are normal files. There are no links. Let's check the temp directory to see if we can find one:
+  </p>
+
+<pre>bschroeder$ ls -lai temp
+total 16
+14907557 drwxr-xr-x@ 5 bschroeder  staff   170  9 Feb 11:40 .
+14907546 drwxr-xr-x@ 9 bschroeder  staff   306  9 Feb 11:52 ..
+14907548 -rw-r--r--@ 2 bschroeder  staff  3130  3 Feb 16:16 ftree_linked.c
+14907561 -rw-r--r--@ 1 bschroeder  staff     0  5 Feb 21:51 hello.txt
+14907562 lrwxr-xr-x@ 1 bschroeder  staff     7  3 Feb 15:17 temp_link -&gt; ../temp
+</pre>
+
+   <p>
+     This example shows what a link looks like. <tt>temp_link</tt> is an alias for <tt>../temp</tt> -- for the directory we did an <tt>ls</tt> on! Does that break our ability to model file trees as trees? (Have we just found a cycle in our file tree?) Fortunately, no. The link isn't a directory: links like these (<i>symbolic links</i>) are "aliases". They are files that contain a <i>path</i> (a sequence of file names that specifies a location in a filesystem).
+   </p>
+
+   <p>
+     There's actually another link in that picture. Did you notice that the inode (the first number on the left) for <tt>ftree_linked.c</tt> is the same as the inode for <tt>ftree.c</tt> in our first example? That means that both filenames refer to the <i>same data on disk</i>. This is more than a symbolic link: this is a <i>hard link</i>. Directories cannot have hard links: this preserves the requirement that each directory have exactly one parent.
+   </p>
+
+   <p>
+     Did you notice the directories "<tt>.</tt>" and "<tt>..</tt>" in both directories we looked at? These are special names that will show up in every directory. "<tt>.</tt>" is the current directory. "<tt>..</tt>" is the parent directory. These names allow us to navigate through the file system. For example, we execute "<tt>./a.out</tt> in class, and the <tt>.</tt> means that we're looking for <tt>a.out</tt> in our current directory. We've also navigated from one directory to another using "<tt>cd ..</tt>", and this command changes our current directory to the parent of the directory we started from.
+  </p>
+
+  <p>
+    So, what have we seen? In the first example, I used <tt>ls</tt> on my current directory. That directory has a parent (we can see that it has a <tt>..</tt>), so it is not the <i>root</i> (the base) of the entire file structure on my disk. However, it is the <i>root of its own file tree</i>. It contains nine entries, two of which are itself and its parent directory. One of the entries it contains is a child directory, and when we look inside that directory, we found examples of links. So, <i>the file tree we examined in these examples has depth three</i>. The top level contains <tt>.</tt> and nothing else. The next level includes the files accessible from <tt>.</tt>, excluding itself and its parent. (There are 7 nodes on the second level.) One of these nodes, <tt>temp</tt>, is a directory, and the third level of the tree includes the files in <tt>temp</tt>.
+  </p>
+
+  <p>
+    Try drawing the tree represented by our examples. Then, take a look at some of your own directories. Can you draw the directory trees?
+  </p>
+
+  <h3>Accessing File Information</h3>
+  <p>
+    A <i>filesystem</i> is an operating system module that encapsulates the data structures used to track files on a disk and the functions used to manipulate those data structures. Fortunately for us, we don't need to know much about those structures to use files. Instead, we simply need to understand the <i>system calls</i> that the operating system exposes for users to access the file system and the <i>macros</i> that C provides to make using those system calls easier. (If you're curious about how filesystems are implemented, we'll learn a great deal more about them in CSCC69.)
+  </p>
+
+  <p>
+    The system call you'll need for this assignment is <tt>stat</tt>, and you'll call it using the <a href="https://linux.die.net/man/2/lstat">C library function <tt>lstat</tt></a>. (Take a moment to read the man page that was just linked. Keep it open as a reference while you code, too.) <tt>lstat</tt> fills in a <tt>struct stat</tt> with information about the file you ask about. Note that you'll need to include several header files to get everything you need for <tt>lstat</tt>. (The man page lists <tt>sys/types.h</tt>, <tt>sys/stat.h</tt>, and <tt>unistd.h</tt>.)
+  </p>
+
+  <p>
+    The <tt>st_mode</tt> field of the <tt>struct stat</tt> is particularly interesting, since it can tell you whether a file is a directory or link. A series of macros (and constants) are provided (check the man page!) to help you extract data from the field: <tt>S_ISREG</tt>, <tt>S_ISDIR</tt>, and <tt>S_ISLNK</tt> will be useful in this assignment. It's also useful to know that the <i>permissions</i> on the file can be extracted by applying a <i>bitwise and</i> to the <tt>st_mode</tt> field and the octal value <tt>0777</tt>.
+  </p>
+
+  <p>
+    In addition to extracting data about individual files, you'll need to be able to get all of the files within a directory. <a href="https://linux.die.net/man/3/opendir">The <tt>opendir</tt></a> and <a href="https://linux.die.net/man/3/readdir">the <tt>readdir</tt></a> functions, which we covered in class, will let you iterate through the files in a directory.
+  </p>
+
+  <h2>Tasks</h2>
+
+  <p>
+    This is a tree assignment. You will need to write a function that constructs a tree (an <tt>FTree</tt>) representing a file tree rooted at the file specified by the user. You will also write a function to walk an <tt>FTree</tt> and to print some of the file information stored in it. For example, here is the output of our solution run on the example directory from the previous section:
+  </p>
+
+  <pre>bschroeder$ ../print_ftree .
+===== . (775) =====
+  ftree.c (644)
+  ftree.h (644)
+  hash.h (644)
+  hash_functions.c (644)
+  Makefile (644)
+  print_ftree.c (644)
+  ===== temp (755) =====
+    ftree_linked.c (644)
+    hello.txt (644)
+    temp_link (755)
+bschroeder$ </pre>
+
+  <p>
+    Here is an example run on a single directory (that contains links):
+  </p>
+
+  <pre>bschroeder$ ../print_ftree temp
+===== temp (755) =====
+  ftree_linked.c (644)
+  hello.txt (644)
+  temp_link (755)
+bschroeder$</pre>
+
+  <p>
+    Here is an example run on a normal file or link:
+  </p>
+
+  <pre>bschroeder$ ../print_ftree temp/ftree.c
+temp/ftree.c (644)
+bschroeder$</pre>
+
+  <p>
+    And finally, here is an example run on a file that doesn't exist:
+  </p>
+
+<pre>bschroeder$ ../print_ftree nofile
+lstat: the name 'nofile' is not a file or directory
+bschroeder$</pre>
+
+  <p>
+    To summarize: The root of the <tt>FTree</tt> being created is the file specified on the command line. The program recursively walks the file system from that starting point and creates a <tt>FTree</tt> the models the file system structure. Each node of the <tt>FTree</tt> is a <tt>TreeNode</tt> and represents a file (normal, directory, or link) encountered in the walk. Specific pieces of information about the file must be stored in each <tt>TreeNode</tt>:
+  </p>
+
+  <ul>
+    <li>The name of the file.
+    </li><li>The permissions on the file.
+    </li><li>If the file is a directory, the linked list of <tt>TreeNode</tt>s that represent the files in the directory. No filename that starts with a <tt>.</tt> should be included. The order of files in the list should be the same as the order used by <tt>readdir</tt>.
+    </li><li>For normal files and links, a 64 bit (8 byte) hash (computed using the hash algorithm from assignment 1) of the contents of the file.
+  </li></ul>
+
+  <p>
+    While the <tt>FTree</tt> must track all of the information, your program will not print all of it. The program must provide exactly the output specified (as described in the examples above). In particular:
+  </p>
+
+  <ul>
+    <li>Each directory should be identified using equals signs. (There are five in the front and five in the back.)
+    </li><li>The contents of a directory should be indented two spaces more than the parent directory.
+    </li><li>Every line should contain the name of the file/directory followed by the permissions (in parentheses, as three octal digits).
+  </li></ul>
+
+  <h3>Starter Code</h3>
+
+  <p> Please download the following files, which make up the starter code for this assignment:
+<a href="http://www.cs.toronto.edu/~bianca/cscb09w17/posted_assignments/starter_a2/Makefile">Makefile</a>
+<a href="http://www.cs.toronto.edu/~bianca/cscb09w17/posted_assignments/starter_a2/ftree.h">ftree.h</a>		
+<a href="http://www.cs.toronto.edu/~bianca/cscb09w17/posted_assignments/starter_a2/ftree.c">ftree.c</a>
+<a href="http://www.cs.toronto.edu/~bianca/cscb09w17/posted_assignments/starter_a2/print_ftree.c">print_ftree.c</a>
+<a href="http://www.cs.toronto.edu/~bianca/cscb09w17/posted_assignments/starter_a2/hash.h">hash.h</a>		
+  </p><p>
+    Most of the structure of the assignment has been provided in the starter files. Note that we have provided both header (.h) files, which declare the existence of functions and global variables, and source (.c) files, where functions and variables are actually defined. The only starter file you may <i>modify</i> is <tt>ftree.c</tt>. You will also need to <i>provide</i> a new source file named <tt>hash_functions.c</tt> that contains a <tt>hash</tt> function.
+  </p>
+
+  <p>
+    In addition to source and header files, the starter code also includes a <tt>Makefile</tt>. This file contains commands for building your program. To build the program, just run <tt>make</tt> on the command line. To erase all of the intermediate files and the executable, run <tt>make clean</tt>.
+  </p>
+
+  <h3>Tips</h3>
+
+  <p>
+    man pages are the best source of information for the system and library calls you need. Start by reading them carefully. Then, construct short programs to try out the syscalls you need, to develop an understanding of how they work. For example, you may want to start by writing a program that calls <tt>lstat</tt> on a single file and prints all of the information that you need to store in a <tt>TreeNode</tt>. Later, you may want to write a program that checks if a file is a directory and, if it is, uses <tt>opendir</tt> and <tt>readdir</tt> to print the names of all the files in the directory. After you've constructed these test programs, try to incorporate what you've learned into the program you're writing for this assignment.
+  </p>
+
+  <p>
+    While only two functions are required, you may wish to create additional recursive helper functions, and you're welcome to do so. However, remember that none of the files except for <tt>ftree.c</tt> should be modified.
+  </p>
+
+  <p>
+    Build up functionality one small piece at a time and commit to svn often.
+  </p>
+
+  <p>
+    Check for errors on every system or library call that is not a print. Send any potential error messages to stderr.
+  </p>
+
+  <p>
+    Be very careful to initialize pointers to NULL and to make sure that you copy any strings that you use.
+  </p>
+
+  <p>
+    You should be able to reuse your <tt>hash</tt> function from A1 after a few modifications. Similarly, you should be able to use this code in A2, so try to write quality code. It's worth spending extra time making sure it is well designed, robust, and easy to read.
+  </p>
+
+  <h3>Submission and Marking</h3>
+
+  <p> We have created a new directory named A2 in your svn repository. To update your local copy of the svn repository, go into your local repo. This should be  <tt>~/cscb09/utorid</tt> if you followed A1 instructions, which also contains your A1 directory. If you type <tt> svn update </tt> inside <tt>~/cscb09/utorid</tt> the local repository will be updated to include your new A2 directory. This directory is empty. So you need to make sure to create all the files for A2 inside this A2 directory.
+Just as you did for A1, remember that you need to use <tt> svn add </tt> and then <tt> svn commit </tt> to make the new files part of your repository.
+
+  </p><p>
+    Your program must compile on a CS lab machine, so please test it there before submission. We will be using <tt>gcc</tt> to compile program with the flags <tt>-Wall</tt> and <tt>-std=gnu99</tt>, as demonstrated in the <tt>Makefile</tt>. Your program should not produce any error or warning messages when compiled. As in assignment 1, programs that do not compile will receive a 0. Programs that produce warning messages will be penalized.
+  </p>
+
+</div>
+<div class="spacer">
+
+  <!-- Google Analytics: default -->
+  <script type="text/javascript">
+  var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+  document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+  </script><script src="./CSCB09 A2_ Structs and Files_files/ga.js" type="text/javascript"></script>
+  <script type="text/javascript">
+  try {
+    var pageTracker = _gat._getTracker("UA-6874918-2");
+    pageTracker._trackPageview();
+  } catch(err) {}
+  </script>
+  
+
+
+</div></body></html>

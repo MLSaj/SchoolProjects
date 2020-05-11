@@ -1,0 +1,69 @@
+---
+title: "STAD57_T1"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
+
+Simulate two sequences of 1,000 observatins from the two models
+AR(2) model : Xt= -.4Xt-1 + .4Xt-2 + Wt, Wt-iid N(0,1)
+
+MA(2) model = Yt = Vt +.5Vt-1 +.2Vt-2 Vt - iid N(0,1)
+where Yt is independent of Wt. Create the product series Zt=Xt*Yt. Create time series
+plots&ACF of X,Y,Z
+```{r}
+W = rnorm(n=1000, mean=0, sd=1)
+X=filter(W,c(-0.4,0.4),method ="recursive")
+V= rnorm(n=1000,mean=0,sd=1)
+Y= filter(V,c(1,0.5,0.2),sides=1)
+Z=X*Y
+
+plot(X,main="TS X"); acf(X,main="ACF X")
+plot(Y,main="TS Y"); acf(Y, na.action = na.pass,main ="ACF Y")
+plot(Z,main="TS Z"); acf(Z,na.action = na.pass, main = "ACF Z")
+```
+
+Load the "monthly milk production" data set into R using the following code
+```{r}
+X=read.csv("monthly-milk-production.csv", header=FALSE)
+X
+X=ts(X,start=c(2002,1),freq=12)
+X
+```
+
+Perform any preprocessing you deem necessary for making the original series as close 
+to stationary as possibly. Plot your resulting series and its ACF.
+```{r}
+plot(X,type='o',pch=20,main="Original TS")
+acf(X,lag=50,main="Original ACF")
+Y= diff(X,lag=12)
+plot(Y,type='o',pch=20,main='lag-12 Difference')
+acf(Y,na.action=na.pass,lag=50,main ="lag-12 Difference ACF")
+```
+Note that this is not the only way to proceed. Analternative approach would be to fit a linear trend andan additive seasonality component, as described in part b.below.The difference betweenthe two approaches is that that differencing can also address random-walk-type behavior.
+
+b. Fit a linear trend component(using simple linear regression).
+Fit a linear trend component (using simple linear regression)and an additive seasonality component (using ANOVA)to the originaldata. Use your fitted components to predict the mean level of the series a tSep2016 (i.e. 12 months after the last one in the data).
+
+```{r}
+T1= time(X)
+T2= factor(round((T1%%1)*12)+1)
+out = lm(X~T1+T2)
+out
+out$coef[1]+out$coef[2]*(2016+8/12) + out$coef[10]
+
+#alternative using predict() function
+new.data=data.frame( T1=(2016+8/12), T2=factor(9, levels=1:12) )
+predict(out,new.data)
+
+```
+
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Cmd+Shift+K* to preview the HTML file). 
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+

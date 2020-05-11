@@ -1,0 +1,298 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<!-- saved from url=(0071)http://www.cs.toronto.edu/~bianca/cscb09w17/posted_assignments/a1.shtml -->
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	
+      <meta name="ROBOTS" content="NOARCHIVE">
+    <link rel="stylesheet" href="./A1CSCB09_files/styles.css" type="text/css" media="screen">
+    <link rel="stylesheet" href="./A1CSCB09_files/print.css" type="text/css" media="print">
+  <!-- $Id: pagestart.html,v 1.1 2006/09/04 02:08:47 reid Exp $ -->
+    
+
+    <title>
+      CSCB09 A1: Command Line Arguments and Pointers
+    </title>
+  </head>
+
+  <body>
+
+<div class="title">
+    <h1>
+      Assignment 1: Command Line Arguments and Pointers
+    </h1>
+    </div>
+
+<div class="navigation">
+  <p><br><br><br>
+
+    <span class="links">
+    <a href="http://www.cs.toronto.edu/~bianca/cscb09w17/index.shtml">Home page</a>
+    <a href="http://www.cs.toronto.edu/~bianca/cscb09w17/courseinfo.shtml">Course Info Sheet</a>  
+    <a href="https://piazza.com/class/ixji38wvlyd2pf">Piazza (DB)</a>
+    <a href="https://cms-pcrs.utsc.utoronto.ca/cscb09/content/quests">PCRS</a>
+    <a href="http://www.cs.toronto.edu/~bianca/cscb09w17/lectures.shtml">Lecture Notes</a>  
+    <a href="http://www.cs.toronto.edu/~bianca/cscb09w17/labs.shtml">Labs</a>
+    <a href="http://www.cs.toronto.edu/~bianca/cscb09w17/feedback.shtml">Anonymous Feedback</a>
+    <a href="http://www.cs.toronto.edu/~bianca/cscb09w17/assignments.shtml">Assignments</a>
+    <a href="https://markus.utsc.utoronto.ca/cscb09w17">Markus</a>
+    </span>
+    <br>
+
+    <!--
+    <span class="links">
+    <b> Course Work </b>
+    </span>
+    <br/>
+    -->
+
+    <!--
+    <span class="links">
+     <a href="http://www.cs.toronto.edu/~bianca/cscb09w17/examples.shtml">Examples</a>  
+     <a href="http://www.cs.toronto.edu/~bianca/cscb09w17/marks.shtml">Grades</a>
+     <a href="http://www.cs.toronto.edu/~bianca/cscb09w17/tests.shtml">Tests</a>
+     <a href="http://www.cs.toronto.edu/~bianca/cscb09w17/forms.shtml">Forms</a>
+    </span>
+    -->
+
+  </p>
+
+</div>
+
+
+<div class="content">
+
+  <!-- TODO: Update due date by campus -->
+  <h3>Due Date: Tuesday, January 31 @ 06:00 p.m.</h3>
+
+
+  <h2>Introduction</h2>
+
+  <p>
+    Over the course of the four assignments in this course you will implement different components of a simple file synchronization system. For examples, take a look at <a href="https://linux.die.net/man/1/rsync">rsync</a> or consider the services provided by OneDrive, Dropbox, Google Drive, or Box. The components you'll be asked to build could also form the basis for a version control system like <a href="https://linux.die.net/man/1/svn">svn</a> or <a href="https://www.kernel.org/pub/software/scm/git/docs/git.html">git</a>. In this, assignment, you'll be writing a program to compute hash values for files.
+  </p>
+
+  <h3>Background: Why Hashes?</h3>
+
+  <p>
+    To function, a file synchronization system must be able to compare a set of files in one location with a set of files in a different location. As an example, let's consider <tt>rsync</tt>. In its default mode, <tt>rsync</tt> simply checks the modification time and size of the files at the source and destination. If either the modification time or size differs for a particular file, then the file is copied from the source to the destination. However, this risks missing cases where the size of the file is unmodified by an edit. To solve this problem, <tt>rsync</tt> could simply transmit all of the files and compare each byte, but this would be a tremendous waste of bandwidth (and time) when a file is unchanged. Instead, <tt>rsync</tt> can compare small <i>hashes</i> that represent the contents of each file.
+  </p>
+
+  <p>
+    A <i>hash</i> is the output of a <i>hash function</i>. A <i>hash function</i> is a function that takes, as input, a piece of data of arbitrary size (the content of a file, in our case) and that generates a value (typically much smaller than the original data) of fixed size. The key characteristic of a good hash function is that two pieces of data that are slightly different (i.e., modified files) will have different hash values except in rare cases. (If you are taking CSC263/B63, you will study be studying hashes soon.)
+  </p>
+
+  <p>
+    So, instead of comparing every byte of two files, <tt>rsync</tt> can compute a small hash for each file and compare them. So for example, in the case of a 160 bit hash value the probability of failing to notice that two files are not the same is only 1 out of 2^160. The actual file is transmitted only if the hashes do not match.
+  </p>
+
+  <h2>Tasks</h2>
+
+  <p>
+    In this assignment you will implement a C program that computes a simple hash function for input data read from the command line. The hash function we will use is based on the boolean exclusive or (xor) operation.
+  </p>
+
+  <p>
+    Except for the first section, which explicitly asks you to check for specific types of invalid input, you do not need to perform error checking. In particular, you may assume the arguments provided to your functions are correct.
+  </p>
+
+  <h3>Part 1: Command-line Arguments</h3>
+
+  <p>
+   We are providing two files as your starter code: 
+   <a href="http://www.cs.toronto.edu/~bianca/cscb09w17/posted_assignments/compute_hash.c"><tt>compute_hash.c</tt></a> and <a href="http://www.cs.toronto.edu/~bianca/cscb09w17/posted_assignments/hash_functions.c"><tt>hash_functions.c</tt></a>.
+  </p>
+
+  <p>
+    The file <tt>compute_hash.c</tt> contains the <i>main</i> function for your program. At the moment, the function does nothing. Your first task is to update it to handle two command line arguments. The first argument is required and should be an integer representing the "block size": the number of bytes that the computed hash should be. The second argument is optional and is a string of hexadecimal digits representing a hash value.
+  </p>
+  
+
+  <p>
+    Add code to check the number of arguments and the value provided as the first argument. If the user provides insufficient or too many arguments, a usage message should be printed:
+  </p>
+
+  <pre>  Usage: compute_hash BLOCK_SIZE [ COMPARISON_HASH ]
+  </pre>
+
+  <p>
+    If the user provides an illegal block size, a different message should be printed:
+  </p>
+
+  <pre>  The block size should be a positive integer less than or equal to MAX_BLOCK_SIZE.</pre>
+
+  <p>
+    The value of the macro <tt>MAX_BLOCK_SIZE</tt> should replace the string MAX_BLOCK_SIZE in the message above. A block size is illegal if it is negative, 0, or larger than the defined <tt>MAX_BLOCK_SIZE</tt>.
+  </p>
+
+  <p>
+    In either case, if an error message is printed, the program should terminate without computing or checking a hash.
+  </p>
+
+  <p>
+    This is a good place to pause. Make sure that your code handles command line arguments appropriately and generates no output if the arguments are correct. Once you have things working, commit a version as a backup and then continue.
+  </p>
+
+  <h3>Part 2: Computing a Hash</h3>
+
+  <p>
+    Next, write the function to compute the hash of data provided via STDIN. The function to implement is <tt>hash</tt>, and it is in the file <tt>hash_functions.c</tt>.
+  </p>
+
+  <p>
+    The hash you are to implement is based on xor. First, initialize all <tt>block_size</tt> bytes of the <tt>hash_val </tt> to <tt>'\0'</tt> (the value 0). Then, read the input one character at a time. The first byte read should be xor'd with the first byte in <tt>hash_val</tt>. The second byte read should be xor'd with the second byte. This repeats until you have read <tt>block_size</tt> bytes. At this point, the computation wraps around, and the next byte is xor'd with the first byte in the <tt>hash_val</tt> again. This process repeats until all of the bytes in the input are read (i.e., until <tt>EOF</tt> is reached).
+  </p>
+  
+  <p>
+       We have provided a helper function, <tt> show_hash </tt> in <tt>compute_hash.c </tt>, which you will find useful. 
+       It simply prints to standard output the hexadecimal values of a hash value. Note, that for each <tt> char </tt> element
+       of the hash value two hexadecimal digits will be printed, since it takes 
+       two hexadecimal digits to represent 8 bits.
+  (Note that we could  have opted to print the hash as characters, rather than hex digits, but some values of the hash will not be printable ASCII values, which makes it hard to see if the function is operating correctly.)
+  </p>
+
+  <p>
+    Here are a few things to remember as you implement and test this function:
+
+    </p><ol>
+      <li>The xor operator is <tt>^</tt>.
+          
+      </li><li>The hash is being computed on STDIN, so you should use <tt>scanf</tt> to read input.</li>
+      
+      <li>You can provide input either by typing at the command line or using a redirection operator (<tt>&lt;</tt>). If you provide input by typing at the keyboard, you terminate the input (provide <tt>EOF</tt>) by typing  <tt>ctrl-D</tt>.</li>
+
+      
+      <li>Test with small block sizes. If you have a block size of N characters, then an input of size K characters where K is less than N should result in a hash where the first K bytes are the same as the input, and the remaining N-K bytes have the value 0. If you provide an input of length 2 * N, where the first N characters match the second N characters, then the hash value should be N <tt>'\0'</tt> characters.
+          (Recall: 1 xor 1 is 0. 0 xor 0 is 0. 1 xor 0 and 0 xor 1 are both 1.)</li>
+
+       <li> Start with simple input and make sure that you understand what output to expect. For example, the character <tt> '\0' </tt> corresponds to a byte with all bits equal to zero. 
+    </li></ol>
+  <p></p>
+
+  <p>
+    Call the function you have written from the main function. The result of the hash should be placed in the variable <tt>hash_val</tt>. You should print the hash by printing each character of the array as a hexadecimal value. For printing, the show_hash helper function will be useful. Do not print any other output.
+  </p>
+  <p> 
+      Test this function carefully before moving on and as before, commit a version once you are done.
+  </p>
+
+  <h3>Part 3: Comparing Hashes</h3>
+
+  <p>
+    Part 3 deals with the case where two commandline arguments are provided. In this case, the program should compute a hash value
+    for input it reads from STDIN (just as in Part 2, when there is only one argument) and then compare the resulting hash value
+    to the hash value provided by the second argument. The hash value provided by the second argument will be a string consisting 
+    of hex digits. 
+</p><p>
+
+    You will need to implement <tt>check_hash</tt>, the function that compares two hashes. This function should take two hash values and return the first index into the hash where two hashes do not match. If they match completely, the function should return <tt>block_size</tt>.
+  </p>
+  <p>
+    You are given a helper function in <tt>compute_hash.c</tt>, called <tt>xstr_to_hash</tt>, which you might find useful. It converts a string of hexadecimal digits into a hash value array.  You are guaranteed that the length of the string is two times the block size of the hash value.  This is necessary because it takes two hexadecimal digits to represent 8 bits or one char. 
+  </p>
+
+  <ol>
+    <li>You may be tempted to use string functions here. That is a bad idea. While we are storing the data in arrays of characters, we are not really dealing with strings. (Why not?)</li>
+    <li>Due to the way that command line arguments are processed, you may have difficulty testing if you provide a
+        hash value (on the command line) that is smaller than the block size. We will not test with hash values
+        that are shorter than the block size.</li>
+    <li>This function can be tested without STDIN or command line arguments: simply provide two different character
+        arrays and check if they match.</li>
+  </ol>
+
+  <p>
+    Call this function from <tt>main</tt> iff a second command line argument is provided. The only output your program
+    should produce in the case the second command line argument is provided is the return value of the <tt>check_hash</tt> function.
+
+   </p><p>Test thoroughly before submitting a final version.
+  </p>
+
+  <h3>Submission and Marking</h3>
+
+  <!-- TODO: Update submission method by campus -->
+  <p>
+      We are using automated grading tools to provide functional feedback, so it's important that your submission be fully submitted
+ and compile cleanly. 
+  </p>
+
+  <p>
+    Your program must compile on the lab machines or mathlab, so please test it there before submission. We will be using <tt>gcc</tt> to compile program with the flags <tt>-Wall</tt> and <tt>-std=c99</tt>:<br><br>
+
+    &nbsp;&nbsp;&nbsp;&nbsp;<tt>gcc -Wall -std=c99 -o compute_hash compute_hash.c hash_functions.c</tt><br><br>
+
+    Your program should not produce any error or warning messages when compiled. Programs that do not compile will receive a 0. Programs that produce warning messages will be penalized.
+  </p>
+
+   <p> For this assignment you will be working individually (rather than in teams). 
+ You will be submitting via svn  to <a href="https://markus.utsc.utoronto.ca/cscb09w17">Markus</a>. 
+     The instructions below will setup your svn work environment. If you are not already familiar with version control,
+make sure to review the lecture material from Week 2.  
+
+</p><p>Your first step should be to log into mathlab or any of the lab machines in BV 473 using your UtorID and password.
+Create a directory in your home directory called <tt>cscb09</tt> (directories are created using mkdir). Change
+into that directory (using cd). Verify that you are actually in the right directory (running pwd should return /cmshome/your_utor_id/cscb09).
+The following commands should accomplish the above:
+
+
+</p><pre>mkdir ~/cscb09</pre>
+<pre>cd ~/cscb09</pre><p></p>
+<pre>pwd</pre><p></p>
+
+Next you need to check out your SVN repo.
+To check out your SVN repo you need to log  in to <a href="https://markus.utsc.utoronto.ca/cscb09w17">Markus</a> and click on
+A1.  You will see on the right side a field saying "URL to your group's repository". The URL will probably have the form
+<tt>http://markus.utsc.utoronto.ca/svn/cscb09w17/your_utor_id</tt>. Your repository will only be generated by the Markus server
+once you log in and click on A1 and it might take a little while. So wait a bit before you try to check out your
+repo into the cscb09 directory you created earlier. You 
+check out your repo from the shell command-line using <tt> svn checkout </tt> with your repo's URL as the argument, 
+so this should look something like :
+
+<pre>svn co http://markus.utsc.utoronto.ca/svn/cscb09w17/your_utor_id
+</pre><p></p>
+
+You will be asked for a password which is your usual utorid password. You will find the repository in your current working directory (the place
+from where you were running the <tt> svn checkout</tt> command).
+It will be a directory named after your utorid
+and you will see that it contains a sub-directory called <tt>A1</tt>.
+(Use <tt>ls</tt> to check that the directory is there).
+This directory is a working copy of your svn repository. 
+
+<p>
+
+For this assignment you will need to submit two files: 
+<tt>compute_hash.c</tt> and <tt>hash_functions.c</tt>.
+
+You will need to create these two files inside the A1 directory in your repository.
+After you first create these files in your A1 directory you need to add them to your repository
+by running <tt>svn add</tt> inside your A1 directory.
+
+</p><pre> svn add compute_hash.c hash_functions.c</pre>
+
+As you work on these two files while implementing this assignment, you want to periodically
+upload your modifications to the svn server by running <tt> svn commit</tt>.
+You commit by running the following in your A1 directory (with a message of your choice):
+
+<pre> svn ci -m "Committing a new version of A1"</pre>
+
+You can log into <a href="https://markus.utsc.utoronto.ca/cscb09w17">Markus</a> to view the files it has received.
+<p> 
+When doing the marking, we will use the latest version of your A1 that was committed before the deadline.
+
+  <!-- TODO: Add note about peer feedback at UTM -->
+
+</p></div>
+<div class="spacer">
+
+  <!-- Google Analytics: default -->
+  <script type="text/javascript">
+  var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+  document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+  </script><script src="./A1CSCB09_files/ga.js" type="text/javascript"></script>
+  <script type="text/javascript">
+  try {
+    var pageTracker = _gat._getTracker("UA-6874918-2");
+    pageTracker._trackPageview();
+  } catch(err) {}
+  </script>
+  
+
+
+</div></body></html>

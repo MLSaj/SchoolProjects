@@ -1,0 +1,161 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
+
+```{r}
+library(astsa)
+library(forecast)
+```
+
+```{r}
+X=diff(log(gnp))
+plot(X)
+sarima(X,1,0,0)
+```
+
+
+
+
+
+
+```{r}
+plot(oil)
+acf(oil); pacf(oil)
+
+X=diff(log(oil))
+layout(matrix(c(1,1,2,3), 2, 2, byrow = TRUE))
+par(mar=c(4,4,1,1))
+plot(X, ylab="oil price growth rate")
+acf(X, 120, main=""); pacf(X, 120, main="")
+
+auto.arima(X, seasonal=FALSE)
+```
+
+```{r}
+out1=sarima(X,1,0,1)
+```
+
+
+```{r}
+ar.yw(X, 15, aic=TRUE)
+out2=sarima(X,8,0,0)
+
+```
+
+#Q3.33
+
+```{r}
+plot(gtemp); acf(gtemp); pacf(gtemp)
+plot(diff(gtemp)); acf(diff(gtemp)); pacf(diff(gtemp))
+```
+
+Q.33
+```{r}
+p_max=q_max=7; aic = matrix( 10^(1000), p_max+1, q_max+1) 
+```
+
+```{r}
+aic
+for(p in 0:p_max){ for(q in 0:q_max){
+  aic[p+1,q+1] = (sarima(gtemp,p,1,q))$AIC }}
+```
+
+
+```{r}
+p_best=which.min( apply(aic,1,min) ) -1 
+q_best=which.min( apply(aic,2,min) ) -1 
+
+p_best
+q_best
+b = auto.arima(gtemp)
+fit=sarima(gtemp,p_best,1,q_best)
+
+fore = sarima.for(gtemp, n.ahead=10, p_best, 1, q_best)
+plot( window(gtemp, start=1980, end=2009), type='o', pch=16,
+      lwd=2, xlim=c(1980,2020), ylim=c(0,.9), ylab='gtemp')
+lines(2010:2019,fore$pred, type='o', pch=16, col=2)
+lines(2010:2019,fore$pred + 1.96*fore$se, lty=2, lwd=2, col=3)
+lines(2010:2019,fore$pred - 1.96*fore$se, lty=2, lwd=2, col=3)
+```
+
+#Q3.41
+```{r}
+plot(unemp);acf(unemp);pacf(unemp);plot(diff(unemp)); 
+acf(diff(unemp));pacf(diff(unemp));
+```
+
+```{r}
+fit=auto.arima(unemp,d=1)
+fit
+fore=forecast(fit,12)
+
+plot( window(unemp, start=c(1975,1), end=c(1978,12)), type='o', pch=16,
+      lwd=2, xlim=c(1975,1980), ylim=c(300,900), ylab='unemp')
+lines(fore$mean, type='o', pch=16, col=2, lwd=2)
+lines(ts(fore$lower[,2],start=c(1979,1),freq=12), lty=2, lwd=2, col=3)
+lines(ts(fore$upper[,2],start=c(1979,1),freq=12), lty=2, lwd=2, col=3)
+```
+
+
+
+```{r}
+arma.fit=auto.arima(log(jj)) 
+arma.fit
+
+Dljj=diff(log(jj), lag=4) 
+
+plot(Dljj); acf(Dljj); pacf(Dljj)
+
+
+sarima( log(jj), 2,0,0,0,1,0,4)
+fore = sarima.for( log(jj), n.ahead=4, 2,0,0,1,1,0,4)
+
+plot( window(jj, start=c(1975,1), end=c(1980,4)), type='o', pch=16,
+      lwd=2, xlim=c(1974,1982), ylim=c(5, 23), ylab='jj')
+lines(1981+c(0:3)/4,exp(fore$pred), type='o', pch=16, col=2)
+lines(1981+c(0:3)/4,exp(fore$pred + 1.96*fore$se), lty=2, lwd=2, col=3)
+lines(1981+c(0:3)/4,exp(fore$pred - 1.96*fore$se), lty=2, lwd=2, col=3)
+
+```
+
+
+```{r}
+plot( window(jj, start=c(1975,1), end=c(1980,4)), type='o', pch=16,
+      lwd=2, xlim=c(1974,1982), ylim=c(5, 23), ylab='jj')
+lines(1981+c(0:3)/4,exp(fore$pred), type='o', pch=16, col=2)
+lines(1981+c(0:3)/4,exp(fore$pred + 1.96*fore$se), lty=2, lwd=2, col=3)
+lines(1981+c(0:3)/4,exp(fore$pred - 1.96*fore$se), lty=2, lwd=2, col=3)
+
+```
+
+
+
+
+```{r}
+X=cbind(rec,soi)
+plot(X, main="")
+acf(X,lag=100)
+
+```
+
+```{r}
+library(vars) 
+```
+
+```{r}
+VARselect(X,lag.max=20) #best AIC @ lag p=15
+out=VAR(X,15) 
+summary(out)
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Cmd+Shift+K* to preview the HTML file). 
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+

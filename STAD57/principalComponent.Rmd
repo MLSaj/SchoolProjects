@@ -1,0 +1,107 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
+
+```{r}
+plot(cars)
+```
+
+```{r}
+mtcars
+mtcars[1:7]
+mtcars.pca <- prcomp(mtcars[,c(1:7,10,11)], center = TRUE,scale. = TRUE)
+
+summary(mtcars.pca)
+mtcars.pca
+```
+
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Cmd+Shift+K* to preview the HTML file). 
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+
+```{r}
+str(mtcars.pca)
+```
+
+
+
+```{r}
+Economic_Trend <- matrix(c(1:10, 2:11, rnorm(30)), byrow = FALSE, nrow = 10, 
+ncol = 5)
+
+Economic_Trend
+```
+
+```{r}
+mu <- colMeans(Economic_Trend)
+mu
+
+Econ_pca <- prcomp(Economic_Trend[,3:5])
+
+
+PCA1 <- ts(Econ_pca$x[,1])  ## Save first PC as a time series object
+PCA2 <- ts(Econ_pca$x[,2])  ## Save second PC as a time series object
+
+PCA1
+PCA2
+
+p <- autoplot(ts(cbind(PCA1,PCA2)), facets = FALSE) +  
+     ## Create ggplot object plotting first 2 PCs
+     ggtitle("First two PCs") + ylab("Econ ($?)") + ## Add plot and y-axis labels 
+     theme_bw() +  ## Remove grayscale background grid
+     theme(axis.text=element_text(size=rel(1)),legend.text = element_text(size = 12))
+p  ## Display plot
+```
+
+
+
+Another example
+
+
+```{r}
+recorders = data.frame("X"=c(0,0,1,1), "Y" = c(0,1,1,0),
+row.names=c("A", "B","C","D"))
+locs = data.frame("X"=c(.3,.5),"Y"=c(.8,.2))
+intensities = data.frame("sine"=sin(0:99*(pi/10))+1.2,
+"cosine"= .7*cos(0:99*(pi/15))+.9)
+
+
+
+dists = matrix(nrow=dim(locs)[1], ncol=dim(recorders)[1],
+dimnames=list(NULL, row.names(recorders)))
+for (i in 1:dim(dists)[2]){
+dists[,i]=sqrt((locs$X-recorders$X[i])^2
+ + (locs$Y-recorders$Y[i])^2)}
+set.seed(500)
+recorded.data = data.frame(jitter(as.matrix(intensities)%*%
+as.matrix(exp(-2*dists)),amount=0))
+
+```
+
+```{r}
+recorded.data
+```
+
+
+
+
+```{r}
+pr2=prcomp(recorded.data,tol=0.1)
+
+ts(pr2)
+
+plot.ts(pr2$x)
+```
+
+```{r}
+
+```
+

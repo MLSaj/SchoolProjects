@@ -1,0 +1,72 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
+
+1.Load the time series data from the file test_2_data.csv.
+Plot the ACF and PACF of the data, and identify an appropriate ARMA model based on them.
+
+```{r}
+a = ts(read.csv('test_2_data.csv',header= FALSE))
+plot(a); acf(a);pacf(a)
+```
+AR(3) model
+b.
+ Fit  the  model  you  identified  from  part  a.   using  thearima()function.   Use  thefit  to  create  1-  to  30-step-ahead  predictions  and  their  associated  95%  prediction intervals, and plot them together with the last 50 values of the series.
+```{r}
+AR3.fit = arima(X,c(3,0,0))
+AR3.pred = predict(AR3.fit,n.ahead=30)
+AR3.pred 
+```
+```{r}
+plot(X,xlim=c(450,530),type='o', pch=20)
+lines(AR3.pred$pred, col=2, pch=20, type='o')
+lines(AR3.pred$pred+1.96*AR3.pred$se, col=3, pch=20, type='o')
+lines(AR3.pred$pred-1.96*AR3.pred$se, col=3, pch=20, type='o')
+```
+c)#long range average
+```{r}
+AR3.fit$coef["intercept"]
+
+```
+
+#MA2.fit$coef["intercept"]
+
+2.  Simulaten= 1,000 observations from the following AR(1) models•Xt=.75Xt−1+Wt•Yt=−.75Yt−1+Vtwhere{Wt},{Vt}are iid standard Normal sequences.
+
+a)
+Plot the theoretical ACF&PACF of the model for lag 1-50
+```{r}
+#N=1000; W=rnorm(N); V=rnorm(N)
+#X=filter(W, .75, method="recursive")
+#Y=filter(V, -.75, method="recursive")
+
+# or, simpler
+X=arima.sim(list(ar=.75),1000)
+Y=arima.sim(list(ar=-.75),1000)
+
+
+```
+
+b)Add the two series together to getZt=Xt+Yt.  Plot the sample ACF and PACFofZt, and identify an appropriate ARMA model based on them.
+```{r}
+Z=X+Y
+acf(Z); pacf(Z)
+fitZ=arima(Z,order=c(2,0,0))
+
+```
+
+c)Fit the model you identified from part b.  using thearima()function.  Use the fitto create 1- to 30-step-ahead predictionsZnn+h, h= 1, . . . ,30.
+```{r}
+Zpred = predict(fitZ,n.ahead=30)$pred
+```
+d)
+```{r}
+
+
+```
+

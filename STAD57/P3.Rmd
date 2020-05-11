@@ -1,0 +1,276 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
+
+```{r}
+plot(cars)
+```
+
+```{r}
+ARMAacf(ar=c(-1.6,-.64), ma=0,10)
+
+ARMAacf(ar=c(.4,.45),ma=0,10)
+
+ARMAacf(ar=c(1.2,-.85),ma=0,10)
+```
+
+
+```{r}
+W=rnorm(1000)
+
+X = filter(W,c(-.4,.4),method="recursive")
+V = rnorm(1000)
+
+Y = filter(V,c(1,.5,.2),sides=1)
+
+Z=X*Y
+
+plot(X,main="TS X"); acf(X,main="ACF X")
+
+plot(Y,main="TS Y"); acf(X,main="ACF Y")
+
+plot(Z,main="TS Z"); acf(X,main="ACF Z")
+
+```
+
+
+
+```{r}
+x = read.csv("monthly-milk-production.csv")
+x = ts(x,start=c(2002,1),freq=12)
+#X=ts(X,start=c(2002,1), freq=12)
+plot(X,main="TS milk");acf(X,main="TS milk ACF")
+
+Y = diff(X,lag=12)
+plot(Y,main="diff milk"); acf(Y,main="diff milk AF")
+```
+
+```{r}
+T1 = time(x)
+#T2=factor( round((T1%%1)*12) +1 )
+T2 = factor(round((T1%%1)*12)+1)
+out=lm(X~T1+T2)
+out
+
+#predict
+new.data = data.frame(T1=(2016+8/12),T2=factor(9,levels=1:12))
+predict(out,new.data)
+```
+
+```{r}
+X = read.csv("test_2_data.csv")
+X
+X=ts(X)
+dim(X)
+plot(X,main="original TS");acf(X,main="ACF");pacf(X,main="PACF")
+
+AR3.fit = arima(X,c(3,0,0))
+AR3.pred = predict(AR3.fit,n.ahead=30)
+
+plot(X,xlim=c(450,550),type='o',pch=20)
+lines(AR3.pred$pred, type = 'o', pch=20, col=2)
+lines(AR3.pred$pred+1.96*Ar3.pred$se,type='o',pch=20,col=3)
+lines(AR3.pred$pred- 1.96*Ar3.pred$se,type='o',pch=20,col=3)
+```
+
+
+
+```{r}
+AC = ARMAacf(ar=c(-.6,.3),ma=c(-.5,.4),50)
+barplot(AR)
+PACF = ARMAacf(ar=c(-.6,.3),ma=c(-.5,.4),50,pacf=TRUE)
+barplot(PACF)
+```
+
+```{r}
+#causal
+X.MA=c(1,ARMAtoMA(ar=c(-.6,.3),ma=c(-.5,.4),50))
+barplot(X.MA)
+
+#invertible
+X.AR= c(1,ARMAtoMA(ar=c(.5,-.4),ma=c(.6, -.3),50))
+barplot(X.MA)
+
+Y.MA= c(1,ARMAtoMA(ar=c(.5,.2) ,lag.max= 50))
+barplot(Y.MA+X.MA)
+
+XY.var_sum = sum((X.MA+Y.MA)^2)
+```
+
+```{r}
+plot(ARMAtoMA(ar=c(.5),ma=c(-.5,-.3),lag.max = 25))
+
+
+
+plot(ARMAacf(ar=c(.5),ma=c(-.5,-.3), lag.max=25))
+
+```
+
+```{r}
+X = read.csv("monthly_sales.csv")
+X= ts(X$sales,c(1965,1),freq=12)
+plot(X);acf(X)
+Y = diff(X,lag=12);acf(Y)
+plot(Y)
+```
+
+```{r}
+X = read.csv("monthly_sales.csv")
+X= ts(X$sales,c(1965,1),freq=12)
+X = log(X)
+T1 = time(X)
+#T2=factor( round((T1%%1)*12) +1 )
+T2 = factor(round((T1%%1)*12)+1)
+out=lm(X~T1+T2)
+summary(out)
+
+plot(ts(out$fitted.values,c(1965,1),freq=12))
+plot(ts(out$residuals,c(1965,1),freq=12))
+acf(ts(out$residuals,c(1965,1),freq=12))
+
+
+new.data =data.frame( year=1973, month=factor(1, levels=1:12) )
+exp(predict(out,new.data))
+
+```
+
+```{r}
+summary(out)
+```
+
+
+```{r}
+a = read.csv("test_2_data.csv")
+dim(a)
+X = ts(a)
+plot(X)
+acf(X);pacf(X)
+
+Ar3.fit = arima(X,order=c(3,0,0))
+Ar3.pred = predict(Ar3.fit,n.ahead=30)
+
+plot(X,xlim=c(450,530))
+lines(Ar3.pred$pred,col=2,pch=20,type='o')
+lines(Ar3.pred$pred+1.96*Ar3.pred$se,col=3,pch=20,type='o')
+lines(Ar3.pred$pred-1.96*Ar3.pred$se,col=3,pch=20,type='o')
+
+Ar3.fit$coef['intercept']
+```
+
+
+
+
+2.  Simulaten= 1,000 observations from the following AR(1) models•Xt=.75Xt−1+Wt
+•Yt=−.75Yt−1+Vt
+where{Wt},{Vt}are iid standard Normal sequences.
+
+a)
+Plot the theoretical ACF&PACF of the model for lag 1-50
+
+```{r}
+N=1000; W=rnorm(1000); V=rnorm(1000);
+X = filter(W,c(.75),method="recursive")
+Y = filter(V,c(-.75),method="recursive")
+acf(X,lag.max=50)
+pacf(X,lag.max=50)
+acf(Y,lag.max=50)
+pacf(Y,lag.max=50)
+
+Z=X+Y
+acf(Z,lag.max = 50)
+pacf(Z,lag.max=50)
+fit.Z = arima(Z,order=c(2,0,0))
+Z.pred = predict(fit.Z,n.ahead=30)
+
+
+```
+
+```{r}
+
+W = rnorm(400,mean=0,sd=1);
+X1 = filter(W,c(1,2,-1),sides=1)
+plot(X1)
+acf(X1,na.action=na.pass)
+```
+
+
+```{r}
+X2 = filter(W,c(-.8,.4),method="recursive")
+plot(X2)
+acf(X2)
+```
+
+
+```{r}
+X3 = filter(W+0.1, c(1),method="recursive")
+plot(X3)
+acf(X3)
+```
+
+
+```{r}
+X = read.csv("Canada reserves.csv")
+X
+X = ts(X$Total.Reserves.excluding.Gold,start=c(1957,1),freq=12)
+plot(X)
+acf(X)
+X1 = diff(log(X))
+plot(X1)
+acf(X1)
+```
+
+```{r}
+X = read.csv("Quebec car sales.csv")
+X = ts(X$Monthly.car.sales.in.Quebec.1960.1968,start=c(1960,1),freq=12)
+plot(X)
+acf(X)
+```
+
+
+
+```{r}
+T1 = time(X)
+T2 = factor(round((T1%%1)*12)+1)
+out = lm(X~T1+T2)
+plot(ts(residuals(out),start=c(1960,1),freq=12))
+acf(ts(residuals(out),start=c(1960,1),freq=12))
+  
+```
+
+
+
+
+
+
+
+
+
+
+
+```{r}
+T1 = time(X)
+T2 = factor(round((T1%%1)*12)+1)
+out = lm(X~T1+T2)
+summary(out)
+
+X2 = ts(residuals(out),start=c(1960,1),freq=12)
+plot(X2)
+acf(X2)
+```
+
+```{r}
+X = read.csv("daily Toronto temp.csv")
+X = ts(X$temperature,start=c(2011,1),freq=365)
+plot(X)
+acf(X,na.action=na.pass)
+
+real = diff(X,lag=365)
+plot(real)
+acf(real,na.action = na.pass)
+```
+

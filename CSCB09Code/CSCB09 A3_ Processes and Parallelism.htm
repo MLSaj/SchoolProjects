@@ -1,0 +1,292 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<!-- saved from url=(0071)http://www.cs.toronto.edu/~bianca/cscb09w17/posted_assignments/a3.shtml -->
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	
+      <meta name="ROBOTS" content="NOARCHIVE">
+    <link rel="stylesheet" href="./CSCB09 A3_ Processes and Parallelism_files/styles.css" type="text/css" media="screen">
+    <link rel="stylesheet" href="./CSCB09 A3_ Processes and Parallelism_files/print.css" type="text/css" media="print">
+  <!-- $Id: pagestart.html,v 1.1 2006/09/04 02:08:47 reid Exp $ -->
+    
+
+    <title>
+      CSCB09 A3: Processes and Parallelism
+    </title>
+  </head>
+
+  <body>
+
+<div class="title">
+    <h1>
+      Assignment 3: Processes and Parallelism
+    </h1>
+    </div>
+
+<div class="navigation">
+  <p><br><br><br>
+
+    <span class="links">
+    <a href="http://www.cs.toronto.edu/~bianca/cscb09w17/index.shtml">Home page</a>
+    <a href="http://www.cs.toronto.edu/~bianca/cscb09w17/courseinfo.shtml">Course Info Sheet</a>  
+    <a href="https://piazza.com/class/ixji38wvlyd2pf">Piazza (DB)</a>
+    <a href="https://cms-pcrs.utsc.utoronto.ca/cscb09/content/quests">PCRS</a>
+    <a href="http://www.cs.toronto.edu/~bianca/cscb09w17/lectures.shtml">Lecture Notes</a>  
+    <a href="http://www.cs.toronto.edu/~bianca/cscb09w17/labs.shtml">Labs</a>
+    <a href="http://www.cs.toronto.edu/~bianca/cscb09w17/feedback.shtml">Anonymous Feedback</a>
+    <a href="http://www.cs.toronto.edu/~bianca/cscb09w17/assignments.shtml">Assignments</a>
+    <a href="https://markus.utsc.utoronto.ca/cscb09w17">Markus</a>
+    </span>
+    <br>
+
+    <!--
+    <span class="links">
+    <b> Course Work </b>
+    </span>
+    <br/>
+    -->
+
+    <!--
+    <span class="links">
+     <a href="http://www.cs.toronto.edu/~bianca/cscb09w17/examples.shtml">Examples</a>  
+     <a href="http://www.cs.toronto.edu/~bianca/cscb09w17/marks.shtml">Grades</a>
+     <a href="http://www.cs.toronto.edu/~bianca/cscb09w17/tests.shtml">Tests</a>
+     <a href="http://www.cs.toronto.edu/~bianca/cscb09w17/forms.shtml">Forms</a>
+    </span>
+    -->
+
+  </p>
+
+</div>
+
+
+<div class="content">
+
+  <h3>Due Date: Sunday, March 19 @ 23:59 p.m.  <br>Note: This is a significant extensions from the date posted on the course information sheet. In exchange, this deadline is hard and there will be no grace days for this assignment. </h3>
+
+  <h2>Introduction</h2>
+
+  <p>
+    This term, we're building the components of a simple file synchronization system. In the first assignment, you wrote code for computing the hash of input from standard input, so that we can identify when files have changed. In the second assignment, you wrote code to build and traverse a file tree. Finally, in this assignment, you'll actually implement file synchronization by copying files from a source file tree to a destination file tree. (In essence, you will be implementing the functionality of <a href="https://linux.die.net/man/1/rsync">rsync</a> without any special options.) You'll use multiple processes to complete this work in parallel, to (hopefully) speed up the task.
+  </p>
+
+  <p>
+    In addition to your code, you will submit a short response to a question about hard links. Please scroll down to the section about hard links for details.
+  </p>
+
+  <h2>Program Requirements</h2>
+
+  <p>
+    Your program, <tt>fcopy</tt>, will copy the directory tree specified by the first command line argument to the destination specified by the second command line argument. For example, assume the following file tree:
+  </p>
+
+  <pre>===== . (755) =====
+  ===== dest (755) =====
+  fcopy (700)
+  ===== test (755) =====
+    ===== subdir (755) =====
+      README (644)</pre>
+
+  <p>
+    The diagram above uses the format for displaying a file tree from the previous assignment. To reiterate, it represents a file tree starting in your current directory (.) The current directory contains a directory "dest", an executable file "fcopy", and a directory "test". "test" contains a directory "subdir". "subdir" contains a file "README". "dest" is initially empty. After you execute <tt>fcopy test dest</tt> on the command line, you would get the following file tree:
+  </p>
+
+  <pre>===== . (755) =====
+  ===== dest (755) =====
+    ===== test (755) =====
+      ===== subdir (755) =====
+        README (644)
+  fcopy (700)
+  ===== test (755) =====
+    ===== subdir (755) =====
+      README (644)</pre>
+
+  <p>
+    As shown above, "test" and all of the files in its file tree have been copied to the destination "dest". Furthermore, the contents of the files and the permissions on files and directories match.
+  </p>
+
+  <p>
+    In the example above, the destination is empty. What should occur if the destination is not empty? For example, what if we are dealing with this situation:
+  </p>
+
+  <pre>===== . (755) =====
+  ===== dest (755) =====
+    ===== test (755) =====
+      ===== subdir (755) =====
+        README (644)
+  fcopy (700)
+  ===== test (755) =====
+    ===== subdir (755) =====
+      README (640)
+    ===== subdir2 (700) =====</pre>
+
+  <p>
+    In this case, if we were to execute <tt>fcopy test dest</tt>, the "dest" contains a number of the files we are attempting to copy. In this situation, your program should create any directories and files that are not present in the destination file tree, and it should overwrite any files that are present but that differ from the file in the source file tree. The resulting file tree would be:
+  </p>
+
+  <pre>===== . (755) =====
+  ===== dest (755) =====
+    ===== test (755) =====
+      ===== subdir (755) =====
+        README (640)
+      ===== subdir2 (700) =====
+  fcopy (700)
+  ===== test (755) =====
+    ===== subdir (755) =====
+      README (640)
+    ===== subdir2 (700) =====</pre>
+
+  <p>
+    In particular, note that "subdir2" has been created in the correct place in the destination and that the permissions on the "README" file have been updated to match the permissions in the source. Furthermore, if the contents of "README" files were different, then the contents from the file in the source directory would be copied to the destination directory, overwriting the original file in the destination directory.
+  </p>
+
+  <h3>Files to Omit</h3>
+
+  <p>
+    Not all files should be copied. Since symbolic (soft) links often contain relative paths, they should not be copied. When a symbolic link is encountered, it should simply be skipped. Similarly, files beginning with a "." should be skipped, as they were in assignment 2.
+  </p>
+
+  <h3>Overwriting Files</h3>
+
+  <p>
+    Copying files is an expensive operation, so we want to avoid copying files whenever possible. Instead of always overwriting normal files, your program should first check the <i>size</i> of the source and destination files. If the size differs, then a copy should be performed. If the sizes match, then a <i>hash</i> should be computed on both the source and destination. If the hashes do not match, then the file should be copied. If they do match, then no copy should occur.
+  </p>
+
+  <p>
+    At this point, you should object: we've just replaced one expensive file operation with another. Instead of just copying the file, we're reading both files (to compute the hash)! You're correct that, for this program, nothing is gained. However, in the next assignment, you'll be transferring files over the network, and we'll want to avoid unnecessary file transfers. This feature is in preparation for that assignment.
+  </p>
+
+  <h3>Parallel Execution</h3>
+
+  <p>
+    Your program should use multiple processes to perform the file copy in parallel to (hopefully) speed up the task. Recall that in assignment 2, we used recursion to build the file tree structure; a recursive call was performed to build each individual tree node. In this assignment, you'll <tt>fork</tt> a new process where you would have made a recursive call in assignment 2.
+  </p>
+
+  <p>
+    However, creating processes is expensive, so we don't actually want to create a process for every file encountered. Instead, the current process should handle copying of regular files. A new process should be created <i>only when you encounter a child directory</i>. The new process will execute the recursive call that will create the child directory and copy any files in it.
+  </p>
+
+  <p>
+    For example, if we return to our original example:
+  </p>
+
+  <pre>===== . (755) =====
+  ===== dest (755) =====
+  fcopy (700)
+  ===== test (755) =====
+    ===== subdir (755) =====
+      README (644)</pre>
+
+  <p>
+    Two processes would be used to perform the copy. The first process is the original one created when <tt>fcopy test dest</tt> is executed. It copies the directory "test". The second process is created (using <tt>fork</tt>) to handle the copy of "subdir". That second process also copies the contents of "subdir" -- the file "README". Here's another example:
+  </p>
+
+  <pre>===== . (755) =====
+  ===== dest (755) =====
+  fcopy (700)
+  ===== test (755) =====
+    output.log (644)
+    ===== subdir (755) =====
+      README (644)
+      ===== subsubdir(755) =====
+    ===== subdir2 (700) =====
+    temp.txt</pre>
+
+  <p>
+    In the example above, four total processes should be used to perform the copy (which means that your program will call <tt>fork</tt> three times). The original process will call <tt>fork</tt> twice (for "subdir" and "subdir2"), and it will also copy two regular files ("output.log" and "temp.txt"). It's first child will call fork once and will copy a single regular file. The other two processes called will create the directories they are called on but have no additional work to perform.
+  </p>
+
+  <h3>Waiting</h3>
+
+  <p>
+    Parent processes should wait for their children. We wait because we want to make sure that the copy is complete before returning control to the command line prompt. We also want to report on the number of processes used. When a child exits, the magnitude of its status code should reflect the number of processes required to perform the work. For example, if a child process does not execute a <tt>fork</tt> but successfully completes the copy, its exit status should be "1". On the other hand, if a child process created three children of its own to complete the copy, its exit status should be "4".
+  </p>
+
+  <h3>Error Checking and Reporting</h3>
+
+  <p>
+    While the magnitude of the status code (and the return value from the <tt>copy_ftree</tt> function) reflects the number of processes used to complete the copy, its sign indicates whether an error was encountered. If the copy was completed successfully, the process should return a positive number. If an error was encountered (by the process or any of its children), its status code should be negative.
+  </p>
+
+  <p>
+    As in assignment 2, you should check all of your system calls and use <tt>perror</tt> to emit an appropriate message if one fails. You may choose whether to terminate the process when an error is encountered or whether to attempt to continue. (For example, if <tt>chmod</tt> fails, you won't be able to fully complete the copy, but you could choose to attempt to copy other files in the directory.) Regardless, the error should be reported.
+  </p>
+
+  <p>
+    There is one other situation which will cause an error. You may encounter a "mismatch" between the source and destination trees:
+  </p>
+
+  <pre>===== . (755) =====
+  ===== dest (755) =====
+    ===== test (755) =====
+      ===== subdir (755) =====
+        README (644)
+  fcopy (700)
+  test(644)</pre>
+
+  <p>
+    In this situation, if we were to execute <tt>fcopy test dest</tt>, we'd be attempting to copy a regular file into a destination where the name is already taken up by a directory. In this case (or the reverse, where a directory would be overwriting a regular file), the copy should not be attempted, and an error should be reported.
+  </p>
+
+  <h3>Starter Code</h3>
+
+  <p>
+    This assignment includes fairly minimal starter code. It consists of 4 files, which you need to download: 
+The first is a <a href="http://www.cs.toronto.edu/~bianca/cscb09w17/posted_assignments/a3_starter/Makefile"> Makefile</a>. The second is the file <a href="http://www.cs.toronto.edu/~bianca/cscb09w17/posted_assignments/a3_starter/fcopy.c">fcopy.c</a>, which provides the
+main function, and the other two are header files with function prototypes: <a href="http://www.cs.toronto.edu/~bianca/cscb09w17/posted_assignments/a3_starter/hash.h">  hash.h </a> and <a href="http://www.cs.toronto.edu/~bianca/cscb09w17/posted_assignments/a3_starter/ftree.h"> ftree.h </a><a>.
+You will need to add two source files of your own: <tt>hash_functions.c</tt>, which should contain a <tt>hash</tt> function, and <tt>ftree.c</tt>, which should contain your <tt>copy_ftree</tt> function. You may define other helper functions in these files, but the only required functions are the ones with prototypes in the provided header files.
+  </a></p><a>
+
+  <p>
+    You should be able to reuse your <tt>hash</tt> function from assignment 2 without modification. You may also want to keep a copy of your <tt>generate_ftree</tt> function open as you code, as there may be snippets (like the code to get the permissions from a file) that you can reuse.
+  </p>
+
+  <h3>Useful Syscalls</h3>
+
+  </a><p><a>
+    This assignment will require that you use some basic IO syscalls (<tt>fopen</tt>, <tt>fread</tt>, and <tt>fwrite</tt>, for example) to read and copy files. (Please use IO operations, rather than calling <tt>exec</tt> or a <tt>system</tt> command, to copy files.) You will also need to use some familiar file system syscalls like <tt>lstat</tt>, <tt>opendir</tt>, and <tt>readdir</tt>. You may also wish to use </a><a href="https://linux.die.net/man/1/basename"><tt>basename</tt></a>, <a href="https://linux.die.net/man/2/mkdir"><tt>mkdir</tt></a>, and <a href="https://linux.die.net/man/2/chmod"><tt>chmod</tt></a>. And, of course, you'll need <a href="https://linux.die.net/man/2/fork">fork</a> and <a href="https://linux.die.net/man/2/wait">wait</a>.
+  </p>
+
+  <h2>Hard Links</h2>
+
+  <p>
+    So far, we've made no mention of hard links. Symbolic (soft) links are to be skipped, but can we detect hard links and <a href="https://linux.die.net/man/2/link">link them</a>, instead of creating duplicate files? The answer is "not easily." Write a single paragraph (no more than 100 words) that explains why this design, which uses different processes to copy the contents of different directories, cannot easily detect hard links.
+  </p>
+
+  <p>
+    Place this response in the file <tt>README.txt</tt>. Your answer will be marked for correctness and clarity (including grammatical correctness and adherence to a formal -- professional -- style).
+  </p>
+
+  <h2>Submission and Marking</h2>
+
+  <p>
+
+    For this assignment you are allowed to work in teams of two students and a new repository will be created for each team. 
+We have added A3 on Markus and configured it to allow you to form teams. If you log in to Markus and click on A3, you should see on the right side a window labelled "Group information" and under it a field "Form your own group". You can choose to work alone (by clicking the corresponding tab) or click on "Create Group", which will allow you to invite one other student to join your group. The person you invited needs to log in to Markus and accept your invite. After that Markus will create a new team repository and you should be able to see its URL when you log in to Markus. As for past exercises, it might take a little while before Markus creates the new repository. So give it a bit of time before searching for the URL. </p><p>
+
+Your submission should be committed to your svn repository by the due date. As before, we are using automated grading tools to provide functional feedback, so it's important that your submission be in the correct location in your repository (under a3/), have the correct filenames (add ftree.c, hash_functions.c, and README.txt and don't change other names), be fully submitted (remember to add files, and commit), compile cleanly, and produce output in exactly the format requested. 
+
+<!---
+    Your submission should be committed (and pushed) to your svn repository by the due date. As before, we are using automated grading tools to provide functional feedback, so it's important that your submission be in the correct location in your repository (under <tt>a3/</tt>), have the correct filenames (add <tt>ftree.c</tt>, <tt>hash_functions.c</tt>, and <tt>README.txt</tt> and don't change other names), be fully submitted (remember to add files, commit, <i>and</i> push), compile cleanly, and produce output in <i>exactly</i> the format requested. -->
+  </p>
+
+  <p>
+    Your program must compile on the lab machines, so please test it there before submission. We will be using <tt>gcc</tt> to compile your program with the flags <tt>-Wall</tt> and <tt>-std=gnu99</tt>, as demonstrated in the <tt>Makefile</tt>. Your program should not produce any error or warning messages when compiled. As in assignments 1 and 2, programs that do not compile will receive a 0. Programs that produce warning messages will be penalized.
+  </p>
+
+</div>
+<div class="spacer">
+
+  <!-- Google Analytics: default -->
+  <script type="text/javascript">
+  var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+  document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+  </script><script src="./CSCB09 A3_ Processes and Parallelism_files/ga.js" type="text/javascript"></script>
+  <script type="text/javascript">
+  try {
+    var pageTracker = _gat._getTracker("UA-6874918-2");
+    pageTracker._trackPageview();
+  } catch(err) {}
+  </script>
+  
+
+
+</div></body></html>

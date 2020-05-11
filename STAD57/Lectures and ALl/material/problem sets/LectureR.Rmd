@@ -1,0 +1,474 @@
+---
+output:
+  word_document: default
+  pdf_document: default
+  html_document: default
+---
+
+##### TS Fundamental R
+```{r}
+library(astsa) # load package
+
+plot(gtemp) # Global mean temperature
+
+acf(soi) # ACF
+
+plot(gtemp) # plot global average temperature (gtemp)
+
+w=7
+smooth.gtemp=filter(gtemp, rep(1/w,w))
+
+lines(smooth.gtemp, col=2)
+```
+##### Exploratory TS R
+```{r}
+# Umbrella quarterly sales 
+
+x=c(6.7,4.6,10,12.7,6.5,4.6,9.8,13.6,6.9,5,10.4,14.1,5,5.5,10.8,15,7.1,5.7,11.1,14.5,8,6.2,11.4,14.9)
+x=ts(x,start=c(2001,1),frequency=4)	
+?ts
+
+out=lm( x~time(x) ) # estimate linear trend
+summary(out) # model description
+aov(out) # regression ANOVA table
+AIC(out) # Akaike's information criterion
+m=fitted(out) # extract regression's fitted values
+m=ts(m,start=c(2001,1),frequency=4)	# convert fitted values to TS
+y=x-m # y is de-trended series
+
+plot(x, type='b', pch=16 ) 
+lines(m, lwd=3, col=2)  # series w/ linear trend 
+
+plot(y, type='b', pch=16, lwd=3 ) # de-trended series 
+
+plot(diff(x,lag=4), type='b', pch=16, lwd=4 ) # lag-4 differenced series 
+
+
+# Johnson & Johnson quarterly sales
+
+n=length(jj)
+x=1:n # explanatory variable is coded time: from 1 to n
+x2=x^2 # squared time
+out=lm( jj ~ x + x2 ) # quadratic regression 
+m=fitted(out)
+m=ts(m,start=start(jj),frequency=frequency(jj))
+jjdt = jj-m # jjdt is de-trended series
+
+plot(jj, xlab='', ylab='', lwd=3 )
+lines(m, lwd=3, col=2)
+
+plot(jjdt, xlab='', ylab='', lwd=3 )
+
+logjj=log(jj) # apply nonlinear log transform
+out=lm( logjj ~ x ) # linear regression 
+m=fitted(out)
+m=ts(m,start=start(jj),frequency=frequency(jj))
+logjjdt = logjj-m
+
+plot(logjj, xlab='', ylab='', lwd=3 )
+lines(m, lwd=3, col=2)
+plot(logjjdt, xlab='', ylab='', lwd=3 )
+
+
+# Global average temperature 
+
+plot(gtemp)
+out=lm( gtemp~time(gtemp) ) # estimate linear trend
+m=ts(fitted(out),start=start(gtemp),freq=frequency(gtemp)) 
+
+plot(gtemp, lwd=2, xlab='' ) 
+lines(m, lwd=3, col=2)  
+
+gtempdt=gtemp-m # dt-trended series
+plot(gtempdt, lwd=3)
+
+gtempdif=diff(gtemp) # 1st order differenced series
+plot(gtempdif, lwd=3)
+
+acf(gtemp) # ACF's
+acf(gtempdt)
+acf(gtempdif)
+```
+
+
+##### ARMA Models R
+```{r}
+### Finding psi-weights of ARMA models
+
+psi = ARMAtoMA(ar=c(.7,-.6), ma=c(.5,-.2), lag.max=10)
+barplot(psi, names=1:10)
+
+### Finding ACF of ARMA models
+
+ARMAacf(ar=c(.5,-.3),lag.max=3) # example from slide 10
+
+rho=ARMAacf(ar=c(.7,-.6), ma=c(.5,-.2), lag.max=20)
+plot(rho, type='h'); abline(h=0)
+```
+
+
+##### ARMA Prediction
+```{r}
+### Finding PACF of ARMA models
+
+phi_hh=ARMAacf(ar=c(.7,-.6), ma=c(.5,-.2), lag.max=20, pacf=TRUE)
+plot(phi_hh, type='h'); abline(h=0)
+
+
+AR=c(-1.5,-.6)
+MA=c(0)
+
+rho=ARMAacf(ar=AR, ma=MA, lag.max=20)
+phi_hh=ARMAacf(ar=AR, ma=MA, lag.max=20, pacf=TRUE)
+par(mfrow=c(1,2), mar=c(2,2,2,2))
+plot(0:20,rho, type='h', lwd=3); abline(h=0)
+plot(1:20,phi_hh, type='h', lwd=3); abline(h=0)
+
+
+AR=c(1.5,-.6)
+MA=c(-.8,-.5,.1)
+
+rho=ARMAacf(ar=AR, ma=MA, lag.max=20)
+phi_hh=ARMAacf(ar=AR, ma=MA, lag.max=20, pacf=TRUE)
+par(mfrow=c(1,2), mar=c(2,2,2,2))
+plot(0:20,rho, type='h', lwd=3); abline(h=0)
+plot(1:20,phi_hh, type='h', lwd=3); abline(h=0)
+
+
+AR=c(0)
+MA=c(.8,-.5,.2)
+
+rho=ARMAacf(ar=AR, ma=MA, lag.max=20)
+phi_hh=ARMAacf(ar=AR, ma=MA, lag.max=20, pacf=TRUE)
+par(mfrow=c(1,2), mar=c(2,2,2,2))
+plot(0:20, rho, type='h', lwd=3); abline(h=0)
+plot(1:20,phi_hh, type='h', lwd=3); abline(h=0)
+```
+
+##### ARMA Estimation R
+```{r}
+## Yule-Walker estimation
+
+par(mfrow=c(1,2))
+acf(rec); pacf(rec) 
+
+yw.fit = ar.yw( rec, order=2)
+yw.fit$x.mean
+yw.fit$ar
+yw.fit$var.pred
+yw.fit$asy.var
+
+## Forecasting from fitted model
+forecast=predict(yw.fit, n.ahead=24)
+forecast$pred
+forecast$se
+
+plot( window(rec, start=c(1982,1), end=end(rec)), xlim=c(1982,1989.5), ylim=c(-5,115), ylab='rec')
+lines( forecast$pred, type='b', pch=16, col=2 )
+lines( forecast$pred + 1.96 * forecast$se, lty=2, col=3, lwd=2 )
+lines( forecast$pred - 1.96 * forecast$se, lty=2, col=3, lwd=2 )
+
+## Maximum Likelihood estimation
+
+ml.fit = ar.mle( rec, order=2)
+ml.fit$x.mean
+ml.fit$ar
+ml.fit$var.pred
+ml.fit$asy.var
+
+## Least Squares estimation
+
+ls.fit = ar.ols( rec, order=2 )
+ls.fit$x.mean
+ls.fit$ar
+ls.fit$var.pred
+
+## Southern Oscilation Index data
+plot(soi)
+par(mfrow=c(1,2))
+acf(soi); pacf(soi) 
+
+## ARMA ML estimation
+ml.fit = arima(soi, order=c(2,0,2) ) # ARMA(2,2) model
+ml.fit$coef
+ml.fit$sigma2
+ml.fit$var.coef
+
+## ARMA LS estimation
+ls.fit = arima(soi, order=c(2,0,2), method="CSS" )
+ls.fit$coef
+ls.fit$sigma2
+ls.fit$var.coef
+
+```
+
+
+##### ARMA Model Selection R
+```{r}
+library(forecast)
+### Model Selection
+
+d.l.gnp=diff(log(gnp)) # GNP series
+plot(gnp); acf(gnp, main="")
+plot(d.l.gnp); acf(d.l.gnp, main="")
+pacf(d.l.gnp, main="")
+
+fit_ar = arima(d.l.gnp, order=c(1,0,0)) # Fit ARMA(1,0) 
+fit_ma = arima(d.l.gnp ,order=c(0,0,2)) # Fit ARMA(0,2) 
+
+AIC(fit_ar) # or equivalently: > fit_ar$aic
+AIC(fit_ma) # ARMA(0,2)=MA(2) has smaller AIC
+
+BIC(fit_ar) # ARMA(1,0)=AR(1) has smaller BIC
+BIC(fit_ma) 
+
+# Automatic model selection for AR models
+ar(d.l.gnp, order.max=20, aic=TRUE) # selects best AR(p) model from p=1,...,20, using AIC
+
+# Automatic model selection for ARMA models
+auto.arima(d.l.gnp)
+
+### Diagnostics for GNP series ARMA model
+fit_ma = arima(d.l.gnp ,order=c(0,0,2)) # Fit ARMA(0,2) 
+
+# Extract model residuals
+res = fit_ma$residuals
+stdres = fit_ma$residuals / sqrt(fit_ma$sigma2)
+
+plot(stdres) # residual plot
+qqnorm(stdres); qqline(stdres) # normal QQ-plot
+acf(stdres) # residual ACF
+Box.test(stdres, lag=20) # Ljung-Box test (H=20) 
+
+lags=3:20; p.values=rep(0,length(lags))
+for(i in 1:length(lags)){
+  p.values[i]=Box.test(stdres, lags[i], type = "Ljung-Box")$p.value
+}
+plot(lags, p.values, ylim=c(0,1), main="Ljung-Box p-values"); abline(h=.05, lty=2)
+
+
+```
+
+
+##### Integrated Seasonal ARMA R
+```{r}
+## Simulated Integrated Series
+
+x=cumsum(rnorm(500)) # integrated of order 1
+plot(x, type='l')
+acf(x) 
+acf(diff(x)) 
+
+y=cumsum(x) # integrated of order 2
+plot(y, type='l')
+acf(y) 
+acf(diff(y,differences=2))
+acf(diff(y,2)) # this is NOT 2nd order difference, but difference at lag 2 -> not stationary
+
+## ARIMA estimation/forecasting for GNP series
+
+par(mfrow=c(1,2))
+plot(gnp); plot(log(gnp))
+
+y=log(gnp) # log-transform
+
+par(mfrow=c(2,2))
+plot(y); plot(diff(y))
+acf(y); acf(diff(y))
+
+par(mfrow=c(1,2))
+acf(diff(y)); pacf(diff(y))
+
+# Fit ARIMA(0,1,2)
+fit_ma = sarima(y,0,1,2)
+fit_ma
+
+# Forecasts from fitted ARIMA(0,1,2) model
+fore = sarima.for(log(gnp), n.ahead=20, 0, 1, 2)
+
+plot( window( gnp, c(1990,1), end(gnp) ), lwd=2, 
+      xlim=c(1990,2008), ylim=c(6500,13000), ylab='GNP')
+lines(exp(fore$pred), type='p', pch=16, col=2)
+lines(exp(fore$pred + 1.96*fore$se ), lty=2, lwd=2, col=3)
+lines(exp(fore$pred - 1.96*fore$se ), lty=2, lwd=2, col=3)
+
+### Diagnostics for GNP series ARIMA model
+
+y=log(gnp)
+fit_ma = sarima(y,0,1,2) ## MA(2) estimation for GNP series
+
+# Extract model residuals
+res = fit_ma$fit$res
+stdres = fit_ma$fit$res / sqrt(fit_ma$fit$sigma2)
+
+plot(stdres) # residual plot
+qqnorm(stdres); qqline(stdres) # normal QQ-plot
+acf(stdres) # residual ACF
+Box.test(stdres, 20) # Ljung-Box test (H=20) 
+
+### SARIMA models ###
+
+# US Production data
+
+par(mfrow=c(1,1))
+plot(prodn)
+par(mfrow=c(1,2))
+acf(prodn,60); pacf(prodn,60)
+
+dprodn=diff(prodn) # differenced series
+par(mfrow=c(1,1))
+plot(dprodn)
+par(mfrow=c(1,2))
+acf(dprodn,60); pacf(dprodn,60)
+
+ddprodn=diff(dprodn,lag=12) # lag-12 differences of differenced series
+par(mfrow=c(1,1))
+plot(ddprodn)
+par(mfrow=c(1,2))
+acf(ddprodn,60); pacf(ddprodn,60)
+
+sarima(prodn, 2, 1, 0, 0, 1, 3, 12)
+sarima.for(prodn, 20, 2, 1, 0, 0, 1, 3, 12)
+
+
+### Using auto.arima ###
+
+library(forecast)
+
+# US Production data
+
+auto.arima(prodn, d=1, D=1)
+sarima(prodn,1,1,1,0,1,1,12)
+sarima.for(prodn, 20, 1, 1, 1, 0, 1, 1, 12)
+
+
+## Monthly total international airline passengers (1949 to 1960)
+
+plot(AirPassengers)
+
+lAP = log(AirPassengers) # take log-transform to stabilize variance
+par(mfrow=c(1,1))
+plot(lAP)
+
+par(mfrow=c(1,2))
+acf(lAP,50); pacf(lAP,50)
+
+# first order differences
+dlAP=diff(lAP)
+par(mfrow=c(1,1))
+plot(dlAP,type='l')
+
+par(mfrow=c(1,2))
+acf(dlAP, 50);pacf(dlAP, 50)
+
+# first order seasonal differences w/ period s=12
+d12dlAP=diff(dlAP,lag=12)
+par(mfrow=c(1,1))
+plot(d12dlAP,type='l')
+
+par(mfrow=c(1,2))
+acf(d12dlAP, 50);pacf(d12dlAP, 50)
+
+auto.arima(lAP, ic="bic")
+auto.arima(lAP, d=1, D=1, ic="aic")
+par(mfrow=c(1,1))
+plot(forecast(fit,h=20))
+
+sarima(lAP,0,1,1,0,1,1,12)
+sarima.for(lAP,20,0,1,1,0,1,1,12)
+
+sarima.for(lAP,60,0,1,1,0,1,1,12)
+```
+
+##### Multivariate Time Seires R
+```{r}
+library(vars) # for fitting VAR models
+
+X=cbind(rec,soi)
+plot(X, main="")
+acf(X,lag=100)
+
+#fitting VAR(p) model
+
+VARselect(X,lag.max=20) #best AIC @ lag p=15
+out=VAR(X,15) 
+summary(out)
+
+pred=predict(out,n.ahead=24)
+fanchart(pred, cis=.95,colors=2)
+
+library(dse) # for simulating VAR models
+
+# Simulate VAR(2)-data; using package 'dse'
+Apoly=array(0,c(2,2,2)) ## Setting AR matrices
+Apoly[1,,]=diag(2)
+Apoly[2,,]=matrix( c(-.7,0,-0.7,-.7),2,2)
+B=diag(2)
+# Generating the VAR(2) model 
+var2=ARMA(A = Apoly, B = B)
+# Simulating 500 observations
+varsim=simulate(var2, sampleT = 500, 
+                noise = list(w = matrix(rnorm(1000),nrow = 500, ncol = 2))) 
+
+Y=ts(varsim$output)
+colnames(Y)=c("X1","X2")
+plot(Y,main="") 
+
+acf(Y)
+out=VAR(Y,1)
+
+# Granger Causality test
+causality(out, cause='X1')
+
+#impulse response function
+out.irf=irf(out, ortho=FALSE)
+plot(out.irf)
+
+# Cointegration analysis
+X=read.table('yield_rates.txt', header=TRUE)
+
+YR=ts(X[,-1], start= c(as.numeric(substr(X[1,1],1,4)),1), freq=12)
+colnames(YR)=temp=gsub("T", "Y", gsub("FYG","",colnames(YR)))
+
+Y=YR[,c("Y1","Y3")]
+plot(Y , plot.type='single', col=1:2, lwd=2)
+legend("topright",colnames(Y),col=1:2,lwd=2)
+
+acf(Y,250)
+
+dY=Y[,"Y1"]-Y[,"Y3"]
+plot(dY, lwd=2)
+acf(dY,250)
+
+library(tseries) # For unit root tests
+adf.test(Y[,"Y1"])
+adf.test(Y[,"Y3"])
+adf.test(dY)
+
+# Engle-Granger approach
+(out=lm(Y1~Y3,data=Y))
+dY.est=residuals(out)
+adf.test(dY.est)
+
+plot(Y[,"Y3"],Y[,"Y1"])
+abline(out, col=2,lwd=2)
+
+library(urca) # for VECM models
+
+out=ca.jo(Y, ecdet="const", K=3) # test for number of cointegrating relations 
+summary(out)
+cajorls(out,r=1) # estimate VECM with #r cointegrated vectors
+
+# Find cointegration with 3 yield rates
+Y.3D=YR[,c("Y1","Y3","Y5")]
+out=ca.jo(Y.3D,ecdet="const",K=3)
+summary(out) # two cointegrating vectors (r=2)
+cajorls(out,r=2) 
+# two cointegrating relations are, roughly 
+# 1Y1 - 1.05Y5 = constant
+# 1Y2 - 1.04Y5 = constant
+# i.e. we have Y1 ~ Y3 ~ Y3
+```
+
+
+

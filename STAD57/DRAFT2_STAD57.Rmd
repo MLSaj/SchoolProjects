@@ -1,0 +1,272 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
+
+```{r}
+# load required packages
+library(cansim)
+library(tidyverse)
+library(lubridate)
+
+```
+
+
+
+
+```{r}
+#### Project 2 ####
+# Plot quarterly & monthly GDP 
+get_cansim_vector( c( 
+  "monthly GDP (basic prices)" = "v65201210",
+  "quarterly GDP (expend-based)" = "v62305723") ,
+    start_time = "2010-01-01" ) %>% 
+  normalize_cansim_values() %>% 
+  ggplot( aes( x = Date, y = VALUE, col = label ) ) +
+  geom_line() + geom_point() + ylab("Chained (2012) dollars")
+```
+
+```{r}
+GDP_Data = get_cansim_vector( c( 
+  "monthly GDP (basic prices)" = "v65201210",
+  "quarterly GDP (expend-based)" = "v62305723") ,
+    start_time = "2010-01-01" ) %>% 
+  normalize_cansim_values()
+
+GDP_Data
+```
+
+
+
+```{r}
+monthly_GDP = tail(GDP_Data,116)
+monthly_GDP
+
+GDP_TS =ts(monthly_GDP$VALUE, start=c(2010,1), freq=12)
+```
+
+
+```{r}
+GDP_TS
+```
+
+
+```{r}
+acf(GDP_TS)
+pacf(GDP_TS)
+
+plot(GDP_TS)
+
+GDP_TS_STATIONARY = diff(GDP_TS)
+acf(GDP_TS_STATIONARY)
+pacf(GDP_TS_STATIONARY)
+plot(GDP_TS_STATIONARY)
+```
+
+
+```{r}
+fit_ar =arima(GDP_TS, order=c(1,1,0)) 
+AIC(fit_ar)
+```
+
+
+
+
+
+```{r}
+fit_new =arima(GDP_TS, order=c(3,1,1)) 
+AIC(fit_new)
+```
+
+
+```{r}
+fit_new =arima(GDP_TS, order=c(2,1,0)) 
+AIC(fit_new)
+```
+
+
+```{r}
+fit_new =arima(GDP_TS, order=c(3,1,0)) 
+AIC(fit_new)
+```
+
+```{r}
+fit_new =arima(GDP_TS, order=c(9,1,0)) 
+AIC(fit_new)
+```
+
+
+#Seems like winner
+```{r}
+fit_new =arima(GDP_TS, order=c(8,1,0)) 
+AIC(fit_new)
+```
+
+
+```{r}
+fit_new =arima(GDP_TS, order=c(7,1,0)) 
+AIC(fit_new)
+```
+
+
+
+
+
+ARMAX
+
+```{r}
+uschange
+```
+
+
+```{r}
+a = read_csv("BusinessServices.csv")
+a
+```
+
+```{r}
+externalvars = read_csv("externalVars.csv")
+externalvars[] <- lapply(externalvars, function(x) as.numeric(as.character(x)))
+
+externalvars$`Cannabis stores (licensed) [453BL]` <- NULL
+
+pr2=prcomp(externalvars,tol=0.05)
+
+ts(pr2)
+
+plot.ts(pr2$x)
+summary(pr2)
+plot(pr2,type="lines",col="blue")
+```
+
+```{r}
+summary(pr2)
+```
+
+
+
+```{r}
+pr2
+```
+
+
+```{r}
+externalvars = read_csv("externalVars.csv")
+goodOnes = externalvars[1:4]
+
+goodOnes
+#externalvars = as.numeric(externalvars)
+pr2=prcomp(goodOnes,tol=0.05)
+
+ts(pr2)
+
+plot.ts(pr2$x)
+#pr2
+
+
+```
+
+
+
+```{r}
+library(vars)
+
+```
+y
+
+```{r}
+b = ts(pr2)
+PCA1 <- ts(pr2$x[,1],start=c(2010,1), freq=12) 
+PCA1_stationary = diff(PCA1)
+
+PCA2 <-ts(pr2$x[,2],start=c(2010,1), freq=12)
+
+PCA2_stationary = diff(PCA2)
+
+var_variables = cbind(PCA1,PCA2,GDP_TS)
+```
+
+```{r}
+varfit = VAR(var_variables,type="const",lag.max=10,ic="AIC")
+```
+
+
+
+```{r}
+fit_new =arima(GDP_TS, order=c(3,1,0),xreg= PCA1) 
+AIC(fit_new)
+```
+
+
+```{r}
+fit_new =arima(GDP_TS, order=c(8,1,0),xreg= PCA1) 
+AIC(fit_new)
+```
+
+
+
+
+```{r}
+fit_new =arima(GDP_TS, order=c(2,1,0),xreg= PCA1) 
+AIC(fit_new)
+```
+
+```{r}
+fit_new =arima(GDP_TS, order=c(1,1,0),xreg= PCA1) 
+AIC(fit_new)
+```
+
+
+```{r}
+library(forecast)
+fit = auto.arima(GDP_TS)
+```
+
+
+
+```{r}
+fit_new =arima(GDP_TS, order=c(3,1,0),xreg= externalvars$`Non-business sector, services [T009]`) 
+AIC(fit_new)
+```
+
+```{r}
+fit_new =arima(GDP_TS, order=c(0,1,0)) 
+AIC(fit_new)
+```
+
+```{r}
+fit_new =arima(GDP_TS, order=c(3,1,0),xreg= PCA2) 
+AIC(fit_new)
+```
+
+
+
+```{r}
+library(forecast)
+```
+
+
+
+```{r}
+plot(PCA1)
+```
+
+```{r}
+plot(PCA2)
+```
+
+
+
+
+
+
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Cmd+Shift+K* to preview the HTML file). 
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.

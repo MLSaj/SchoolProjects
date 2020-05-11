@@ -1,0 +1,199 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<!-- saved from url=(0074)http://www.cs.toronto.edu/~bianca/cscb09w17/posted_assignments/A4/a4.shtml -->
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	
+      <meta name="ROBOTS" content="NOARCHIVE">
+    <link rel="stylesheet" href="./CSCB09 A4_ Sockets_files/styles.css" type="text/css" media="screen">
+    <link rel="stylesheet" href="./CSCB09 A4_ Sockets_files/print.css" type="text/css" media="print">
+  <!-- $Id: pagestart.html,v 1.1 2006/09/04 02:08:47 reid Exp $ -->
+    
+
+    <title>
+      CSCB09 A4: Sockets
+    </title>
+  </head>
+
+  <body>
+
+<div class="title">
+    <h1>
+      Assignment 4: Sockets
+    </h1>
+    </div>
+
+<div class="navigation">
+  <p><br><br><br>
+
+    <span class="links">
+    <a href="http://www.cs.toronto.edu/~bianca/cscb09w17/index.shtml">Home page</a>
+    <a href="http://www.cs.toronto.edu/~bianca/cscb09w17/courseinfo.shtml">Course Info Sheet</a>  
+    <a href="https://piazza.com/class/ixji38wvlyd2pf">Piazza (DB)</a>
+    <a href="https://cms-pcrs.utsc.utoronto.ca/cscb09/content/quests">PCRS</a>
+    <a href="http://www.cs.toronto.edu/~bianca/cscb09w17/lectures.shtml">Lecture Notes</a>  
+    <a href="http://www.cs.toronto.edu/~bianca/cscb09w17/labs.shtml">Labs</a>
+    <a href="http://www.cs.toronto.edu/~bianca/cscb09w17/feedback.shtml">Anonymous Feedback</a>
+    <a href="http://www.cs.toronto.edu/~bianca/cscb09w17/assignments.shtml">Assignments</a>
+    <a href="https://markus.utsc.utoronto.ca/cscb09w17">Markus</a>
+    </span>
+    <br>
+
+    <!--
+    <span class="links">
+    <b> Course Work </b>
+    </span>
+    <br/>
+    -->
+
+    <!--
+    <span class="links">
+     <a href="http://www.cs.toronto.edu/~bianca/cscb09w17/examples.shtml">Examples</a>  
+     <a href="http://www.cs.toronto.edu/~bianca/cscb09w17/marks.shtml">Grades</a>
+     <a href="http://www.cs.toronto.edu/~bianca/cscb09w17/tests.shtml">Tests</a>
+     <a href="http://www.cs.toronto.edu/~bianca/cscb09w17/forms.shtml">Forms</a>
+    </span>
+    -->
+
+  </p>
+
+</div>
+
+
+<div class="content">
+
+  <h3>Due Date: Friday, March 31 @ 23:59 p.m.</h3>
+
+  <h2>Introduction</h2>
+
+  <p>
+    This is the final assignment of the term, so it's time to wrap things up by having your file synchronization program work across different machines. In this assignment, you'll be writing two programs that collaborate to copy files from the client to the server. (You will not be implementing file transfer from the server to the client, only from the client to the server.)
+  </p>
+
+  <p>
+    As in assignment 3, you may be able to copy snippets of code from previous assignments (mostly the implementation of your
+hash function), so you may want to keep copies of assignment 2 and 3 open. You may also find the code from the week 11 lab and week 10/11 lectures helpful.
+  </p>
+
+  <h2>Program Requirements</h2>
+
+  <p>
+    You will write a <tt>Makefile</tt> and two programs, <tt>rcopy_client</tt> and <tt>rcopy_server</tt>. The <tt>Makefile</tt> should compile the two required programs. The two programs should work together to copy a file tree from the client machine to the server machine. Here is the process that the two programs will use:
+  </p>
+
+  <ol>
+    <li><tt>rcopy_client</tt> initiates a connection with <tt>rcopy_server</tt>. As in the  week 11 lab, the port to use should be defined using a variable set in the <tt>Makefile</tt>. The IP address of the server is a commandline argument to the client's main function.
+    </li><li><tt>rcopy_client</tt>, in a single process, walks the local (source) file tree (the directory structure). For each file or directory ...
+    <ol type="A">
+      <li><tt>rcopy_client</tt> sends the server a <tt>struct fileinfo</tt>: an <i>absolute</i> file path, mode (not just permissions!), hash, and file size. The struct is
+        defined in ftree.h. Then, it waits for a response. We have to send the absolute file path since we can't make assumptions about the current working directory of 
+        the server, and we have to send the mode since the server will need to know the type of the file.
+      </li><li><tt>rcopy_server</tt> responds with the integer <tt>MISMATCH</tt> (see <tt>ftree.h</tt>) if its copy of the file differs 
+       (so the client should send a copy) and <tt>MATCH</tt> if the files are the same. 
+       If the file is a directory and it does not already exist, the server will create the directory (with the proper name and permissions) and return <tt>MATCH</tt>.
+       The server may detect that the file types are incompatible, in which case it should send a <tt>MATCH_ERROR</tt> 
+       and emit an error on <tt>STDERR</tt>. 
+      Regardless of whether there is a match or mismatch, the server should update the file's (or directory's)
+      permissions if it exists.
+      <ol type="i">
+        <li>If the files are the same, the client can continue to the next file.
+
+        </li><li>If the files are different, the client should transmit the data from the file. 
+        After transmitting this data, the file sender client should wait for the message <tt>TRANSMIT_OK</tt>. 
+        If there is an error (either on the client side or if the message <tt>TRANSMIT_ERROR</tt> is received), 
+        it should print an appropriate message that includes the name of the file that triggered the error, then close the connection 
+        and exit with status 1. 
+        No message should be printed if the file transfer is successful.
+       
+
+        </li><li>The server should update the file as data is received from the file sender client and then change 
+            the permissions after the file transmission is complete. 
+         If those operations succeed, it should send the success message <tt>TRANSMIT_OK</tt>. 
+         If it detects some error while writing the data 
+        (early termination of the connection or a mismatch in the hash, for example), 
+        the server should transmit the error message <tt>TRANSMIT_ERROR</tt>, print an appropriate error that includes 
+        the name of the file that triggered the error and close the connection. 
+        However, the server <i>should not terminate</i>, as it needs to be available for other clients, i.e. it should move on to accept new connections. 
+        No message should be printed if the file transfer is successful.
+        When implementing the reading of the file at the server remember from the week 11 lab that you cannot assume that
+        the server receives any particular number of bytes in one call to read.
+      </li></ol>
+      </li><li>After transmitting the file successfully, the client can continue to the next file. 
+         It does not need to open a new connection for the next file; the server is expecting the client to send a sequence of structs. 
+    </li></ol>
+    </li><li>After all files are copied (or if an error occurred), the client should close the connection with the server. If all of the file transfers completed 
+        successfully and the client did not encounter an error, it should return a 0. Otherwise, it should return 1 (i.e. it should have exited with 1 at the point
+        when it encountered an error).
+    </li><li>The server should not terminate after the client exits. It should continue listening for new clients to connect.
+  </li></ol>
+
+  <h3>Security Concerns</h3>
+
+  <p>
+    The server does not need to do any checking to make sure that the file sender clients are sending files previously checked by the client. The clients also do no authentication, so <b>anyone could connect to your server and overwrite your files.</b>
+  </p>
+
+  <p>
+    I hope that sounds bad. <b>This is a huge vulnerability.</b> So, (1) change the port in your <tt>Makefile</tt> to a "secret" number. 
+    This is just "security through obscurity", but it's a start. 
+     (2) Only run your server when you are actively testing and don't forget to kill it whenever you aren't using it. 
+     (3) Consider crippling your server so that it only accepts paths with a specific "safe" prefix (for example, you may choose to only access files in <tt>/cmshome/username/a4testing</tt>). You can use the <a href="http://man7.org/linux/man-pages/man3/realpath.3.html"><tt>realpath</tt></a> library function to convert any path to an absolute path that can be checked to verify it is prefixed with this "safe" path. Just remember to "un-cripple" your server before submission!
+  </p>
+
+  <h3>Starter Code and File Structure</h3>
+
+  <p>
+    We are providing header files that define the client and server functions to write 
+    (<a href="http://www.cs.toronto.edu/~bianca/cscb09w17/posted_assignments/A4/ftree.h"><tt>ftree.h</tt></a>) and the hash function to provide 
+    (<a href="http://www.cs.toronto.edu/~bianca/cscb09w17/posted_assignments/A4/hash.h"><tt>hash.h</tt></a>).  
+   You will need to create 5 new files: the first is a <tt>Makefile</tt> (more on that below); 
+the second is a file called <tt>hash_functions.c</tt>, which has the implementation of your hash function; 
+the remaining two are the files that include the <tt>main()</tt> function for the client (<tt>rcopy_client.c</tt>) 
+and server (<tt>rcopy_server.c</tt>). The main function should only check for the proper command line arguments
+and then call <tt>fcopy_client()</tt> and <tt>fcopy_server()</tt>, respectively. 
+All of the code you write (in particular all the code related to the implementation of
+<tt>fcopy_client()</tt> and <tt>fcopy_server()</tt>) should go into <tt>ftree.c</tt>.
+  </p>
+
+  <p>
+    Your first task is to write a <tt>Makefile</tt>. Your <tt>Makefile</tt> should have at least four targets: 
+    <i>all</i>, the default target that should build both <tt>rcopy_client</tt> and <tt>rcopy_server</tt>; <i>rcopy_client</i>; <i>rcopy_server</i>, and <i>clean</i>, which should remove the executables and any intermediate (<tt>.o</tt>) files. The <tt>Makefile</tt> should also define at least two variables: <i>PORT</i>, for the port to be used by the client and server, and <i>FLAGS</i>, which should include at least <tt>-Wall</tt>, <tt>-std=gnu99</tt>, and <tt>-DPORT</tt>.
+  </p>
+
+  <p>
+    I recommend implementing the client and server in parallel, but in <b>very small</b> steps. For example, start by implementing a server that simply accepts a connection from the client and prints the data that is transmitted to it. Write a client that connects to the server and sends the path it was given. Test. Then, update the client so that it actually pays attention to its arguments and sends the data for a single real file (but don't recursively trace directories). Test. Then, update the sever so it actually tests that specified file and sends a response. Test. Then, update the client and server so that the client can trace through the directory tree and send data about more than one file. Test. Then ...
+  </p>
+
+  <h3>Transmitting Structs</h3>
+
+  <p>
+    As long as the fields are sent in the expected order (path, then mode, then hash, then file size), the struct can be filled in easily. Since all of the fields in the struct have a fixed size, they are easy to transfer: the client (and server) can simply write (and read) the number of bytes expected for each field. For example, the hash is stored in an array of <tt>BLOCKSIZE</tt> chars, so <tt>BLOCKSIZE</tt> bytes should be transmitted.
+  </p>
+
+  <p>
+    There are two issues to be careful of. First, make sure to send all of the bytes expected. For example, even if the path is only 16 bytes long, the full <tt>MAXPATH</tt> bytes should be transmitted. Second, be sure to translate any numeric types to and from network order (using <tt>htonl</tt> and <tt>ntohl</tt>, for example), in case the systems have different endianness.
+  </p>
+
+  <h3>Links and Hidden Files</h3>
+
+  <p>As in previous assignments, your programs do not need to handle links or files with filenames that start with ".". If the client encounters a symbolic link or a file starting with ".", it should skip it. As a result, you can assume that your server not encounter a symbolic link and does not need to handle this case.
+  </p>
+
+  <p>As you saw in the previous assignment, identifying that two files are hard links of the same underlying data is difficult, so you are not expected to do so. Two files that are hard links of the same underlying data on the client will result in two separate files on the server.</p>
+
+  <h2>Submission and Marking</h2>
+
+  <p>
+    Your submission should be committed to your svn repository by the due date. 
+    As before, we are using automated grading tools to provide functional feedback, so it's important that your submission be in the correct location in your repository (under <tt>a4/</tt>), have the correct filenames (all of your code -- client and server -- should be in <tt>ftree.c</tt> except for the hash function, which should be in <tt>hash_functions.c</tt>), not include the safety mechanism described earlier, be fully submitted (remember to <i> svn add </i> the <tt>Makefile</tt> and any other new files, and <i>commit</i>), compile cleanly, and produce output when requested (and only when requested).
+  </p>
+
+  <p>
+    Your program must compile and run on a lab machine, so please test it there before submission. We will be using <tt>gcc</tt> to compile program with the flags <tt>-Wall</tt> and <tt>-std=gnu99</tt>. Your program should not produce any error or warning messages when compiled. As in assignments 1-3, programs that do not compile will receive a 0. Programs that produce warning messages will be penalized.
+  </p>
+
+</div>
+<div class="spacer">
+
+
+
+
+</div></body></html>

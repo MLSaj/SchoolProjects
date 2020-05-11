@@ -1,0 +1,31 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
+
+```{r}
+X= rnorm(120)
+X
+plot(x,pch=20)
+X.ts = ts(data=X, start=c(2005,1), frequency=12)
+X.ts
+plot(X.ts)
+class(X);
+class(X.ts)
+```
+
+```{r}
+my_data=read.csv("ontario_marriages.csv")
+X=aggregate(COUNT~MONTH+YEAR, data=my_data, sum, subset= (CITY %in% c('TORONTO','OTTAWA')))
+
+
+
+```
+
+
+
+

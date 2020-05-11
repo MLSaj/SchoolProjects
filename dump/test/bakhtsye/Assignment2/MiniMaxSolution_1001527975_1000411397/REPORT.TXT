@@ -1,0 +1,126 @@
+CSC D84 - Artificial Intelligence
+
+Assignment 2 - MiniMax and Game Trees 
+
+This assignment is worth:
+
+10 AIUs (Artificial Intelligence Units)
+toward the 35% assignment component of your final
+mark.
+
+________________________________________________
+
+Student Name 1 (last, first): Bakht Sajeed
+
+Student Name 2 (last, first):Justin Sabour
+
+Student number 1:1001527975
+
+Student number 2:1000411397
+
+UTORid 1:bakhtsye
+
+UTORid 2:sabour14
+
+READ THIS AND SIGN YOUR NAME AT THE END:
+
+ I certify that I have read the UTSC code on academic
+honesty and plaguarism. All work submitted as part
+of this assignment is my own.
+
+	Signed: _(student 1 name here)__	_(student 2 name here)__
+
+
+(-5 marks for failing to provide the identifying
+ information requested above)
+________________________________________________
+
+Answer the following questions. Be concise and clear
+but explain carefully when needed.
+
+1 .- (5 marks) Explain the design of your utility function.
+     Describe all the factors that influence its value, and
+     how their influence was evaluated and integrated into
+     a single, meaningful value. Convince us that your utility
+     makes sense!
+     We first started off, by doing a tradeoff between distance between the cats and the mouse, and the distance to the closest cheese and the mouse.
+     Next we accounted for terminal nodes, i.e. mouse eating cheese or cat eating mouse. We gave these high utility values since they are very important in the game
+     and added them into the equation. Next, we accounted for closer mouses. We changed our average cat distances to be a weighted average, depending on how close
+     a specific cat was. Lastly, we added weights to closest cheese depending on how many cheeses there were. For example if there is 1 cheese then it is of high utility to get there.
+     But if there are 10 cheeses, then it's probably a bad thing to go after that cheese if it puts you in a bad position.
+     Our utility looked like utility = weight(closest_cheese) + weight(weighted_average_cat_mouse_dist) + weighted(terminal_node) 
+
+2 .- (2 marks) Ignoring computation time, what is the effect of
+     search depth (number of turns) on the chances of the mouse
+     winning the game. 
+      We saw that with more of search depth, our mouse could "look ahead" more and figure out better paths to win.
+
+3 .- (2 marks) What situations will cause your mouse to lose?
+     can these be fixed either with the utility function, or
+     by changing the search depth? if so, how?
+     Some problems were being stuck in a dead end. This could be fixed by figuring out the true path. We could use something similar to a BFS search,
+     but we were afraid it would slow down our utility.
+
+4 .- (2 marks) Compare cats with smartness=.8 against cats with
+     smartness=1 - which are harder for your mouse to beat?
+     why do you think that is?
+     Our mouses performed better at .8 cats. It's because the cats made worse decisions which our mouses could optomize for.
+     However,a cat moving randomly actually made our mouse play worse, as we accounted for cats being close to a mouse a little too highly.
+     Our mouse was happy staying far away from the cat without having to go after the cheese.
+
+5 .- (2 marks) Can the mouse be made unbeatable by having an
+     optimal utility function?
+     I believe it is possible, but I think there are some scenarios where you can't beat it. For example you can have 5 cats and 1 cheese, all very poorly placed(seed) for our mouse.
+     In our tree it could be seen that every move for the mouse would lead to a losing scenario.
+
+6 .- (2 bonus marks) Could a human playing the game in place
+      of the mouse do better than your code? (yes, no, and
+      a reasonable explanation of why)
+	A human could still be better than our mouse. We had to guess and compute weights for certain things, (distance from cat, distance from cheese)
+	but a good human player would unconciously know all these weights really well. Possibly a neural network to figure out these weights could beat a human.
+
+_____________________________________________________
+
+Mark with an 'x' where appropriate. If something is only
+working partially, briefly describe what works, what
+doesn't work, or what problems exist.
+	
+	Complete/Working	Partial		Not done
+
+Utility
+ function       X our utility function looks good and consistenly beats smart mouses, mouse is hard to catch in many seeds.		
+
+MiniMax		X we recursively compute utility values at all nodes, and 
+
+Alpha/Beta			 X due to timing, we were unable to complete it. We got the first alpha(-large number) and beta(-large number) values done on run time		
+ pruning			    however we can go to depth 12 without seeing computation problems.
+_____________________________________________________
+
+Marking:
+
+(10 marks) Implemented a non-trivial, clever, and
+           effective utility function. It allows the
+           mouse to win the game often. 
+
+(10 marks) Correctly implementing MiniMax. The algorithm
+           should produce the expected behaviour. The
+           mouse should take a reasonable path to the
+           cheese and avoid cats. The cats will try to
+           catch the mouse. Mouse is not easy to catch.
+
+(10 marks) Implemented alpha-beta pruning. The algorithm
+           significantly reduces the amount of search
+           while producing identical results as those
+           from standard MiniMax 
+
+(15 marks) Competitive (TA assigned) based on how smart
+           your mouse is (this is related to your
+           utility function above!)
+
+(15 marks) Answers in this report file
+
+(2 bonus)  Bonus!
+
+Total for A2:       / out of 60
+
+

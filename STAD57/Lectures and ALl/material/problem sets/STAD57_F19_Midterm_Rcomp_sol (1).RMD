@@ -1,0 +1,127 @@
+---
+title: "STAD57 F19 Midterm Examination - Computing Component"
+date: "October 25, 2019"
+output: html_notebook
+editor_options: 
+  chunk_output_type: inline
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+---
+
+
+### Question 1
+
+The following time series plot shows Canada's monthly natural gas exports. 
+
+```{r}
+load("STAD57_F19_Midterm.Rdata")
+plot(X, ylab = "Volume (x1000m^3)", main = "Natural Gas Exports")
+```
+
+(a) [5 points] Decompose the series into a trend, seasonal, and remainder components. Plot the components and the ACF of the remainder, and comment on the characteristics of the remainder series.
+
+```{r}
+# 1.a 
+dc = decompose(X)
+plot(dc)
+plot(dc$random)
+acf(dc$random, na.action = na.pass, lag.max = 50)
+```
+
+The original series has an obvious trend component (increasing at first, then flat) and seasonality. For the remainder series, there seems to be an step-up in variance in the early 2000's. The ACF of the remainder series seems to have a periodic patern, suggesting some residual seasonality.
+
+
+(b) [5 points] Split your series in two parts: from Jan 1985 to Dec 2002 and from Jan 2003 to Jul 2019 (use ```window``` function). Repeat the previous step and comment on the stationarity of the series. 
+
+```{r}
+
+X.a = window( X, c(1985,1), c(2002,12) )
+dc.a = decompose(X.a)
+plot(dc.a)
+acf(dc.a$random, na.action = na.pass, lag.max = 50)
+
+X.b = window( X, c(2003,1), c(2019,7) )
+dc.b = decompose(X.b)
+plot(dc.b)
+acf(dc.b$random, na.action = na.pass, lag.max = 50)
+
+```
+
+The results are similar as before, with the difference that the remainder variance seems constant for each part.
+
+For the remaining questions use the later part of the series (2003-2019). 
+
+(c) [5 points] Plot the ACF and PACF of the remainder series and identify an appropriate ARMA model.
+
+```{r}
+acf(dc.b$random, na.action = na.pass)
+pacf(dc.b$random, na.action = na.pass)
+```
+
+There is no clear cut-off point for either ACF/PACF. An ARMA model with some $p,q>0$ could be used. (Alternatively, an AR(6) or MA(6) model could be used as an approximation.)
+
+(d) [5 points] The function ```acf2AR()``` takes a vector of autocorrelations $[\rho(0)=1,\rho(1),\ldots,\rho(n)]$ and returns a lower triangular matrix whose rows are the $\vec{\phi}_1, \ldots, \vec{\phi}_n$ vectors of the Durbin-Levinson algorithm. Calculate this matrix for your ACF from the previous part.   
+(*Hint*: use ```as.numeric( acf(...)$acf )``` to extract the vector of autocorrelations from the ```acf``` function)
+
+```{r}
+acf.b = acf(dc.b$random, na.action = na.pass, plot = F)$acf[,,1]
+PHI = acf2AR(acf.b)
+```
+
+(e) [2 points] The diagonal elements of the previous matrix constitute the sequence $\phi_{1,1}, \phi_{2,2}, \ldots, \phi_{h,h}$ of partial autocorrelations at different lags. Extract and plot the diagonal elements to verify that they match the PACF plot of the series.
+
+```{r}
+plot(diag(PHI), type = "h"); abline(h = 0); abline(h = c(-1,1)*1.96/sqrt(length(X.b)), lty=2, col = 4 )
+```
+This plot is identical to the one from ```pacf```.
+
+#### Question 2
+Consider the ARMA(2,1) process $X_t = .4X_{t-1} -.3X_{t-2} + W_t + .5W_{t-1}$, and the AR(2) process $Y_t = -.4Y_{t-1} +.3Y_{t-2} + V_t$, where $\{ V_t\} ,\{W_t\} \sim^{iid} N(0,1)$ are independent white noise sequences.
+
+(a) [3 points] Plot the theoretical ACF & PACF of $X_t$ up to lag 50.
+
+```{r}
+library(magrittr) # for pipe (%>%) operator 
+ARMAacf(ar=c(.4,-.3), ma=.5, lag.max = 50) %>% plot( x = 0:50, y = ., type = "h"); abline(h = 0)
+ARMAacf(ar=c(.4,-.3), ma=.5, lag.max = 50, pacf = T) %>% plot( x = 1:50, y = ., type = "h"); abline(h = 0)
+```
+
+(b) [2 points] Plot the causal weights of $X_t$ up to lag 50.
+
+```{r}
+ARMAtoMA(ar=c(.4,-.3), ma=.5, lag.max = 50) %>% plot( x = 1:50, y = ., type = "h"); abline(h = 0)
+```
+
+(c) [6 points] Simulate 5,000 observations from each series (use ```arima.sim()```), and calculate the new series $Z_t = X_t + Y_t$.
+
+```{r}
+set.seed(123); N = 5000
+X = arima.sim( n = N, model = list( ar=c(.4,-.3), ma=.5 ) )
+Y = arima.sim( n = N, model = list( ar=c(-.4,+.3)) )
+```
+
+(d) [5 points] Plot the *sample* (i.e. based on simulated values) ACF and PACF of $Z_t$ up to lag 50, and try to identify what order ARMA model it follows.
+
+```{r}
+Z = X + Y
+acf(Z); pacf(Z)
+```
+
+The ACF seems to cut-off at lag 4, so this could be an AR(4) 
+
+(d) [7 points] Plot the *theoretical* ACF of $Z_t$ up to lag 50.  
+
+From linearity of covariances, the ACF of the sum of two series is the sum of their ACFs. Therefore:
+
+```{r}
+acf.X = ARMAacf(ar=c(.4,-.3), ma=.5, lag.max = 50)
+acf.Y = ARMAacf(ar=c(-.4,.3),lag.max = 50)
+
+plot( x = 0:50, (acf.X + acf.Y)/2, type = "h"); abline(h = 0)
+```
+
+

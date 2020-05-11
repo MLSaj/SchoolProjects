@@ -1,0 +1,362 @@
+---
+title: "ProblemSets"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+#### 1. ####
+```{r}
+my_data=read.csv("ontario_marriages.csv")
+X=aggregate(COUNT~MONTH+YEAR, data=my_data, sum, subset= (CITY %in% c('TORONTO','OTTAWA')))
+
+my_data %>% 
+  filter(CITY %in% c("TORONTO", "OTTAWA")) %>% 
+  group_by( YEAR, MONTH ) %>% 
+  summarise( COUNT = sum( COUNT ))
+  select(MONTH, YEAR, COUNT)
+
+idx=(X$YEAR>=1990)
+marriages=ts(X$COUNT[idx],start=c(1990,1), frequency=12)
+plot(marriages, type='o', pch=20)
+```
+
+
+#### 2. ####
+```{r}
+#### Q1
+
+W=rnorm(n=400, mean=0, sd=1)
+```
+
+```{r}
+# a.
+X=filter(W, c(1,2,-1), sides=1)
+par(mfrow=c(1,2))
+plot(X,type='o',pch=20, main="TS Plot")
+acf(X, na.action = na.pass, main="ACF Plot")
+```
+
+```{r}
+# b.
+X=filter(W, c(-.5,.4), method = "recursive")
+plot(X,type='o',pch=20, main="TS Plot")
+acf(X, na.action = na.pass, main="ACF Plot")
+```
+
+```{r}
+# c.
+X=filter(W+.01, c(1), method = "recursive")
+plot(X,type='o',pch=20, main="TS Plot")
+acf(X, na.action = na.pass, main="ACF Plot")
+```
+
+
+```{r}
+#### Q2
+
+X=read.csv("Canada reserves.csv")
+X1=ts(X[,2], start=c(1957,1), freq=12)
+
+par(mfrow=c(2,2))
+plot(X1, main="Original TS")
+acf(X1, main="Original ACF")
+
+X1.stationary=diff(log(X1))
+plot(X1.stationary, main="Stationary TS")
+acf(X1.stationary, main="Processed ACF" )
+
+X=read.csv("Quebec car sales.csv")
+X2=ts(X[,2], start=c(1960,1), freq=12)
+
+plot(X2, main="Original TS")
+acf(X2, main="Original ACF")
+
+T1=time(X2) # explanatory variable for linear trend
+T2=factor( round((T1%%1)*12) +1 ) # explanatory factor for (additive) monthly seasonality
+out=lm(X2~T1+T2)
+X2.stationary=ts( residuals(out), start=c(1960,1), freq=12)
+plot(X2.stationary, main="Stationary TS")
+acf(X2.stationary, main="Stationary ACF")
+
+par(mfrow=c(1,1))
+plot(X2, type='o', pch=20)
+lines( ts(out$fitted, start=c(1960,1), freq=12), col=3, lwd=2 )
+out.trend=lm(X2~T1)
+lines( ts(out.trend$fitted, start=c(1960,1), freq=12), col=2, lwd=2 )
+points(X2, type='o', pch=20)
+legend('topleft',c("original",'trend','trend+seasonality'), col=1:3, lwd=rep(2,3), bty='n')
+
+X=read.csv("daily Toronto temp.csv")
+X3=ts(X[,2], start=c(2011,1), freq=365)
+
+par(mfrow=c(2,2))
+plot(X3, main="Original TS")
+acf(X3, na.action=na.pass, main="Original ACF")
+
+X3.stationary=(diff(X3, lag=365))
+plot(X3.stationary, main="Stationary TS")
+acf(X3.stationary,na.action=na.pass, main="Stationary ACF")
+```
+
+
+
+#### 3. ####
+```{r}
+#### 3.7 from text
+
+ARMAacf(ar=c(-1.6,-.64), ma=0, 10)
+ARMAacf(ar=c(.4,.45), ma=0, 10)
+ARMAacf(ar=c(1.2,-.85), ma=0, 10)
+```
+
+```{r}
+#### 3.8 from text
+
+phi=.6; theta=.9
+AR_1.acf=ARMAacf(ar=phi, lag=25)
+MA_1.acf=ARMAacf(ma=theta, lag=25)
+ARMA_1.1.acf=ARMAacf(ar=phi, ma=theta, lag=25)
+
+par(mfrow=c(1,3))
+plot(AR_1.acf, type='h', main="AR(1) ACF", xla='lag', ylab='ACF' )
+plot(MA_1.acf, type='h', main="MA(1) ACF", xla='lag', ylab='ACF' )
+plot(ARMA_1.1.acf, type='h', main="ARMA(1,1) ACF", xla='lag', ylab='ACF' )
+
+```
+
+
+#### 4. ####
+```{r}
+# Q3.10 from textbook
+
+#install.packages("astsa") # package for textbook data & functions (run only once)
+library(astsa) # load package
+```
+
+```{r}
+#a. 
+(AR2.ols=ar.ols(cmort, order=2, demean=FALSE, intercept=TRUE)) # fit AR(2) w/ OLS
+```
+
+```{r}
+#b.
+AR2.pred=predict(AR2.ols, n.ahead=4) # create predictions
+
+pred.mean=AR2.pred$pred # prediction mean
+pred.upper95PI=AR2.pred$pred+qnorm(1-.05/2)*AR2.pred$se # 95% Confidence interval
+pred.lower95PI=AR2.pred$pred-qnorm(1-.05/2)*AR2.pred$se
+
+plot(cmort, xlim=c(1978.5,1979.85), ylim=c(70,110), type='o', pch=20)
+lines(pred.mean, col=2, lwd=2, type='o', pch=20)
+lines(pred.upper95PI, col=3, lwd=2, type='o', pch=20)
+lines(pred.lower95PI, col=3, lwd=2, type='o', pch=20)
+legend('topleft', c("forecast",'95% pred-int'), col=2:3, pch=15)
+```
+
+```{r}
+# Q8
+
+#a.
+X=read.csv("Canada reserves.csv")
+X1=ts(X[,2], start=c(1957,1), freq=12)
+X1.stationary=diff(log(X1))
+
+par(mfrow=c(1,2))
+acf(X1.stationary, main="ACF")
+acf(X1.stationary, type='partial', main='PACF')
+```
+
+```{r}
+#b.
+X=read.csv("Quebec car sales.csv")
+X2=ts(X[,2], start=c(1960,1), freq=12)
+T1=time(X2)
+T2=factor( round((T1%%1)*12) +1 ) 
+out=lm(X2~T1+T2)
+X2.stationary=ts( residuals(out), start=c(1960,1), freq=12)
+acf(X2.stationary, main="ACF")
+acf(X2.stationary, type='partial', main='PACF')
+```
+
+```{r}
+#c.
+X=read.csv("daily Toronto temp.csv")
+X3=ts(X[,2], start=c(2011,1), freq=365)
+X3.stationary=(diff(X3, lag=365))
+acf(X3.stationary, na.action=na.pass,  main="ACF")
+acf(X3.stationary, na.action=na.pass, type='partial', main='PACF')
+
+```
+
+
+#### 5. ####
+```{r}
+#Q3.18
+library(astsa)
+plot(cmort)
+fit.yw=ar.yw(cmort, aic=FALSE, order.max=2)
+fit.ols=ar.ols(cmort, aic=FALSE, order.max=2)
+```
+
+```{r}
+#a.
+fit.ols$ar
+fit.yw$ar
+```
+
+```{r}
+#b.
+fit.ols$asy.se.coef$ar
+sqrt(diag(fit.yw$asy.var.coef))
+```
+
+```{r}
+#Q3.20
+n=500; model=list(ar=.9, ma=-.9)
+for(i in 1:3){
+  X=arima.sim(model,n)
+  acf(X); pacf(X)
+}
+```
+
+```{r}
+#Q3.21
+n=200; model=list(ar=.9, ma=.5)
+for(i in 1:10){
+  X=arima.sim(model,n)
+  AR1MA1.fit=arima(X,order=c(1,0,1),include.mean=FALSE)
+  print(AR1MA1.fit$coef); print(AR1MA1.fit$sigma2)
+}
+```
+
+```{r}
+#Q3.22
+n=50; model=list(ar=.99, ma=.5)
+X=arima.sim(model,n)
+fit.yw=ar.yw(X,order.max=1) # Yule-Walker estimation of phi
+
+B=200; phi_hat=rep(0,B)  # Bootstrap simulation
+for(i in 1:200){
+  X=arima.sim(model,n)
+  phi_hat[i]=ar.yw(X,order.max = 1)$ar
+}
+
+x=seq(min(phi_hat)*.9,max(phi_hat)*1.1,length=100)
+plot(x, dnorm( x, mean=fit.yw$ar, sd = sqrt(fit.yw$asy.var.coef) ), 
+     type='l' , xlab="phi", ylab = "density", ylim=c(0,10), lwd=2 )
+lines(density(phi_hat), col=2, lwd=2)
+legend('topleft',pch=19, col=c(1,2), legend=c("Asymp. Approximation", "Bootstrap Estimate"), bty ='n')
+```
+
+
+#### 7. ####
+
+```{r}
+library(astsa)
+library(forecast)
+```
+
+```{r}
+#Q3.31
+
+X=diff(log(gnp))
+plot(X)
+sarima(X,1,0,0)
+```
+
+```{r}
+#Q3.32
+
+plot(oil)
+acf(oil); pacf(oil)
+
+X=diff(log(oil))
+layout(matrix(c(1,1,2,3), 2, 2, byrow = TRUE))
+par(mar=c(4,4,1,1))
+plot(X, ylab="oil price growth rate")
+acf(X, 120, main=""); pacf(X, 120, main="")
+
+auto.arima(X, seasonal=FALSE)
+out1=sarima(X,1,0,1)
+
+ar.yw(X, 15, aic=TRUE)
+out2=sarima(X,8,0,0)
+```
+
+
+```{r}
+#Q3.33
+
+plot(gtemp); acf(gtemp); pacf(gtemp)
+plot(diff(gtemp)); acf(diff(gtemp)); pacf(diff(gtemp))
+
+p_max=q_max=7; aic = matrix( 10^(1000), p_max+1, q_max+1) 
+
+for(p in 0:p_max){ for(q in 0:q_max){
+  aic[p+1,q+1] = (sarima(gtemp,p,1,q))$AIC }}
+
+p_best=which.min( apply(aic,1,min) ) -1 
+q_best=which.min( apply(aic,2,min) ) -1 
+
+fit=sarima(gtemp,p_best,1,q_best)
+
+fore = sarima.for(gtemp, n.ahead=10, p_best, 1, q_best)
+
+plot( window(gtemp, start=1980, end=2009), type='o', pch=16,
+      lwd=2, xlim=c(1980,2020), ylim=c(0,.9), ylab='gtemp')
+lines(2010:2019,fore$pred, type='o', pch=16, col=2)
+lines(2010:2019,fore$pred + 1.96*fore$se, lty=2, lwd=2, col=3)
+lines(2010:2019,fore$pred - 1.96*fore$se, lty=2, lwd=2, col=3)
+```
+
+```{r}
+#Q3.41
+
+par(mfrow=c(1,3),mar=c(2,2,1.5,2))
+plot(unemp); acf(unemp); pacf(unemp)
+plot(diff(unemp)); acf(diff(unemp)); pacf(diff(unemp))
+
+fit=auto.arima(unemp,d=1)
+
+fore=forecast(fit,12)
+
+plot( window(unemp, start=c(1975,1), end=c(1978,12)), type='o', pch=16,
+      lwd=2, xlim=c(1975,1980), ylim=c(300,900), ylab='unemp')
+lines(fore$mean, type='o', pch=16, col=2, lwd=2)
+lines(ts(fore$lower[,2],start=c(1979,1),freq=12), lty=2, lwd=2, col=3)
+lines(ts(fore$upper[,2],start=c(1979,1),freq=12), lty=2, lwd=2, col=3)
+```
+
+```{r}
+#Q3.44
+
+arma.fit=auto.arima(log(jj)) 
+# selected SARIMA(2,0,2)x(0,1,0)[4] with drift
+
+Dljj=diff(log(jj), lag=4) # seasonally differenced log-series at lag 4
+plot(Dljj); acf(Dljj); pacf(Dljj)
+
+sarima( log(jj), 2,0,2,0,1,0,4)
+fore = sarima.for( log(jj), n.ahead=4, 2,0,2,0,1,0,4)
+
+plot( window(jj, start=c(1975,1), end=c(1980,4)), type='o', pch=16,
+      lwd=2, xlim=c(1974,1982), ylim=c(5, 23), ylab='jj')
+lines(1981+c(0:3)/4,exp(fore$pred), type='o', pch=16, col=2)
+lines(1981+c(0:3)/4,exp(fore$pred + 1.96*fore$se), lty=2, lwd=2, col=3)
+lines(1981+c(0:3)/4,exp(fore$pred - 1.96*fore$se), lty=2, lwd=2, col=3)
+
+```
+
+
+
+
+
+
+
+
+
