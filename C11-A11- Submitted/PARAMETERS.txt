@@ -1,0 +1,2 @@
+RBF_image_inpainting('Amazing_jellyfish_corrupted_by_text.tif’,4,4);
+RBF_image_denoising('Noisy_turtles_small.tif',3,2,1.5);
